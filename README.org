@@ -1,4 +1,3 @@
-;;; -*- mode: org; -*-
 #+TITLE: CLUNK! README
 #+DATE: <2014-10-18 Sat>
 #+AUTHOR: William Clifford
