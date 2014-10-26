@@ -1,0 +1,13 @@
+#+TITLE: CLUNK! GREP
+#+DATE: <2014-10-25 Sat>
+#+AUTHOR: William Clifford
+#+EMAIL: wobh@yahoo.com
+
+* Introduction
+
+CLUNK! Grep is a CL learning project implementing a primitive grep
+(fgrep) program.
+
+
+
+
