@@ -17,47 +17,16 @@
   baz
   qux
 #+END_SRC
-* TODO MVP
-  :PROPERTIES:
-  :header-args: :tangle-mode (identity #o700) :noweb yes :padline no :mkdirp yes
-  :END:
+* DONE MVP
+~cl-grep pattern file~
 
-~cl-grep file pattern~
+#+BEGIN_EXAMPLE
+$ cl-grep grep README.org
 
-#+HEADER :tangle (tangle-done "cl-grep.lisp" "../src")
-#+BEGIN_SRC lisp
-  #!/usr/local/bin/clisp
-  ;; -*- mode: lisp; -*-
-  
-  ;;;; cl-grep.lisp
-  
-  ;;;; AUTHORS:
-  ;;;; William Clifford [wc] wobh@yahoo.com
-  
-  ;;;; DESCRIPTION:
-  ;;;; A basic grep. Prints lines that match pattern to standard-output.
-  
-  (defparameter *usage*
-    "usage: cl-grep [pattern] [file]"
-    "Messages")
-  
-  (defparameter *args* (#+clisp EXT:*ARGS*)
-    "TODO: strive for implementation independence.")
-  
-  (defparameter *pattern* (first  *args*))
-  (defparameter *file*    (second *args*))
-  
-  (defun main ()
-    (unless *args*
-      (format t *usage*)
-      (quit))
-    (with-open-file (stream *file*)
-      (do ((line (read-line stream nil) 
-                 (read-line stream nil)))
-          ((null line))
-        (when (search *pattern* line)
-          (format t line)))))
-#+END_SRC
+CLUNK! Grep is a CL learning project implementing a primitive grep
+(fgrep) program.
+#+END_EXAMPLE
+
 * TODO decide features
 
 ** Selections from manpage
