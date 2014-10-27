@@ -1,5 +1,5 @@
 #!/usr/local/bin/clisp
-;; -*- mode: common-lisp; -*-
+;; -*- mode: lisp; -*-
 
 ;;;; cl-grep.lisp
 
@@ -9,31 +9,76 @@
 ;;;; DESCRIPTION:
 ;;;; A basic grep. Prints lines that match pattern to standard-output.
 
-(defparameter *usage*
-  "usage: cl-grep [pattern] [file]"
-  "Messages")
 
-(defparameter *args* (or #+clisp EXT:*ARGS* nil)
-  "TODO: strive for implementation independence.")
+;;; Messages
 
-(defparameter *pattern* (first  *args*))
-(defparameter *file*    (second *args*))
+(defstruct (messages (:conc-name mesg-))
+  "Messages object for accessing messages to user"
+  (usage "usage: cl-grep [pattern] [file]")
+  (match "~&~A~%"))
+
+(defparameter *messages*
+  (make-messages)
+  "Messages to user")
+
+
+;;; Settings and Status
+
+(defstruct (settings (:conc-name opts-))
+  "Settings object for accessing options and parameters")
+
+(defparameter *settings*
+  (make-settings)
+  "Options and parameters")
+
+(defparameter *status* nil
+  "Program status")
+
+(defun grep-exit (&optional (status *status*))
+  #+clisp (EXT:exit status))
+
+
+;;; Conditions
+
+(define-condition no-pattern (error)
+  ((message :reader message :initarg :message)))
+
+
+;;; CL-Grep
+
+(defun write-match (text)
+  (format *standard-output*
+	  (mesg-match *messages*)
+	  text))
+
+(defun seek-pattern (pattern text)
+  (when (search pattern text)
+    (unless *status* (setf *status* 0))
+    (write-match text)))
 
 (defun scan-stream (stream pattern)
   (do ((line (read-line stream nil) 
              (read-line stream nil)))
       ((null line))
-      (when (search pattern line)
-        (format t "~&~A~%" line))))
+    (seek-pattern pattern line)))
 
-(defun main ()
-  (unless *args*
-    (format t *usage*)
-    (quit))
-  (if *file*
-      (with-open-file (stream *file*)
-        (scan-stream stream *pattern*))
+(defun main (&optional pattern file)
+  (unless pattern
+    (format *error-output* (mesg-usage *messages*))
+    (setf *status* 2)
+    (grep-exit))
+  (if file
+      (with-open-file (stream file)
+        (scan-stream stream pattern))
       (with-open-stream (stream *standard-input*)
-        (scan-stream stream *pattern*))))
+        (scan-stream stream pattern)))
+  (unless *status* (setf *status* 1))
+  (grep-exit))
 
-(main)
+
+;;; Setup
+
+(defparameter *args* (or #+clisp EXT:*ARGS* nil)
+  "Arguments passed to CL-Grep.")
+
+(apply #'main *args*)
