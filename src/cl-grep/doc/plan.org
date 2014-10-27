@@ -239,7 +239,7 @@ when standard output is a terminal and block buffered otherwise.
 
 ** TODO Fixtures [0/0]
 *** TODO names
-#+HEADER :tangle (tangle-done "foo.txt" "../lib/fixtures")
+#+HEADER: :tangle (tangle-done "foo.txt" "../lib/fixtures")
 #+BEGIN_SRC text
   foo
   bar
