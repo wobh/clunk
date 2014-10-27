@@ -1,0 +1,63 @@
+#+TITLE:     CLUNK! CLRT development plan
+#+AUTHOR:    William Clifford
+#+EMAIL:     wobh@yahoo.com
+#+DATE:      2014-10-26 Sun
+#+DESCRIPTION: development plan for CLRT
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT:
+
+* Introduction
+
+Reference ERT implementation available at [[../src/ert.el]]
+
+A few important differences to note:
+
+1) won't have to prefix functions with "ert-"
+2) won't be able to use emacs buffer types 
+3) will be able to use cl conditions
+4) will have to forgo much of the external emacs interface for now.
+
+I will probably implement things I later find were unnecessary. I
+expect to discover that I have to implement things I don't find in the
+ERT reference source.
+
+* Features [0/6]
+
+
+
+** TODO define ~CLRT~ package
+
+** TODO =test= structure
+
+#+BEGIN_SRC lisp
+  (defstruct test
+    "The data structure that represents a test case."
+    (name nil)
+    (documentation nil)
+    (body (assert nil))
+    (most-recent-result nil)
+    (expected-result-type :passed)
+    (tags '()))
+#+END_SRC
+
+** TODO =deftest=
+
+*** TODO =should=
+
+*** TODO =should-not=
+
+*** TODO =should-error=
+
+** TODO =run-tests-interactively=
+
+** TODO =run-tests-batch=
+
+** TODO =run-tests-batch-and-exit=

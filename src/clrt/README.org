@@ -1,0 +1,23 @@
+#+TITLE:     CLUNK! CLRT README
+#+AUTHOR:    William Clifford
+#+EMAIL:     wobh@yahoo.com
+#+DATE:      2014-10-26 Sun
+#+DESCRIPTION: README for CLRT
+#+KEYWORDS: common-lisp, regression-tests
+#+LANGUAGE:  en
+#+OPTIONS:   H:6 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT:
+
+* Introduction
+
+CLUNK! CLRT is an experimental implementation of Emacs' ERT a simple,
+elegant regression test suite for Emacs Lisp.
+
+If this works reasonably well, it might be worth figuring out how to
+integrate it into Emacs for Common Lisp regression testing in Emacs.
