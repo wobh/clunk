@@ -31,8 +31,6 @@ ERT reference source.
 
 * Features [0/6]
 
-
-
 ** TODO define ~CLRT~ package
 
 ** TODO =test= structure
@@ -61,3 +59,18 @@ ERT reference source.
 ** TODO =run-tests-batch=
 
 ** TODO =run-tests-batch-and-exit=
+
+* Other testing packages
+
+** reviews of Common Lisp testing packages:
+- http://aperiodic.net/phil/archives/Geekery/notes-on-lisp-testing-frameworks.html
+
+** CL testing packages that seem cool
+- http://common-lisp.net/project/fiveam/
+- http://dwim.hu/live/hu.dwim.stefil/
+-
+  http://www.cs.northwestern.edu/academics/courses/325/readings/lisp-unit.html
+
+** non-CL testing software that might be useful
+
+- https://github.com/seattlerb/minitest
