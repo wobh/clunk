@@ -142,3 +142,12 @@ description of valid values for RESULT-TYPE.
 	 ;; TODO: I'm not sure we're going to be able to do the part
 	 ;; commented out. [wc 2014-10-29]
 	 ))))
+
+(defun pass ()
+  "Terminate the current test and mark it passed.  Does not return."
+  (throw 'pass nil))
+
+(defun fail (data)
+  "Terminate the current test and mark it failed.  Does not return.
+DATA is displayed to the user and should state the reason of the failure."
+  (signal 'test-failed (list data)))
