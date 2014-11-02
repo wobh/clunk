@@ -31,7 +31,8 @@
   (make-settings)
   "Options and parameters")
 
-(defparameter *status* nil
+(defparameter *status*
+  nil
   "Program status")
 
 (defun grep-exit (&optional (status *status*))
@@ -78,7 +79,8 @@
 
 ;;; Setup
 
-(defparameter *args* (or #+clisp EXT:*ARGS* nil)
+(defparameter *args*
+  (or #+clisp EXT:*ARGS* nil)
   "Arguments passed to CL-Grep.")
 
 (apply #'main *args*)
