@@ -35,16 +35,13 @@ ERT reference source.
 #+BEGIN_SRC lisp
   (defmacro should (&body body)
     (let ((var (gensym))
-          (out (gensym))
           (err (gensym)))
-      `(let ((,var nil)
-             (,out nil))
-         (handler-case
-             (progn
-               (assert ,body (,var) clrt:fail ,var)
-               (setf ,out ,var))
-           (condition (,err)
-             (setf ,out ,err))))))
+      `(multiple-value-bind (,var ,err)
+           (ignore-errors
+             (assert ,body))
+         (if ,err
+             (signal clrt:fail ,err)
+             (signal clrt:pass ,var)))))
 #+END_SRC
 *** should-not
 #+BEGIN_SRC lisp
@@ -53,23 +50,27 @@ ERT reference source.
 #+END_SRC
 *** should-error
 #+BEGIN_SRC lisp
-  ;; FIXME
-  (defmacro should-error ((err) &body body)
-    (let ((var (gensym))
-          (out (gensym)))
-      `(let ((,var nil)
-             (,out nil))
-         (handler-case
-             (progn
-               (check-type ,body ,err)
-               (setf ,out (make-condition clrt:fail ,var)))
-           (condition (,err)
-             (setf ,out ,err))))))
+  (defmacro should-error ((exp-err) &body body)
+    (let ((err (gensym)))
+      `(handler-case
+           (progn
+             ,@body
+             (signal clrt:fail ,err))
+         (serious-error (,err)
+           (signal clrt:pass ,err)))))
 #+END_SRC
 ** test outcomes
-- passed, expectation met
-- failed, expectation unmet
-- unexepected error
+*** passed, expectation met
+#+BEGIN_SRC lisp
+  (define-condition clrt:pass ()
+    )
+#+END_SRC
+*** failed, expectation unmet
+#+BEGIN_SRC lisp
+  (define-condition clrt:fail ()
+    )
+#+END_SRC
+*** unexepected error
 #+BEGIN_SRC lisp
   (labels ((subject (str) nil))
     (let ((controls (list "foo" "bar" "baz" "qux"))
