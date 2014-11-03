@@ -43,8 +43,53 @@ EXIT STATUS
 2. catch errors
 3. set exit status >2
 
-** TODO use options struct
-No options have 
+** TODO setup settings struct
+1. =(defparameter *settings* (make-settings))= create settings struct
+2. set any options that may be defined by environment variables
+   - =(setf (home *settings*) +clisp (EXT:GETENV "HOME"))=
+3. =(defparameter *args* +clisp (ext:*args))= get args
+5. identify options in =*args*=
+   - shortopt simple flag starts with "-" followed by one letter
+   - shortopt list of flags starts with "-" followed by letters
+   - shortopt parameter 
+     + starts with "-" followed one letter
+     + followed by " " (space) or "="
+     + followed by argument
+     + may not be in list
+   - longopt flag starts with "--" followed by a word or hyphen separated words
+   - longopt parameter 
+     + starts with "--"
+     + followed by word or hyphen separated words
+     + followed by " " (space) or "="
+     + followed by argument
+6. set any of these in =*settings*= overwrite environment settings
+7. identify arguments of positional parameters in =*args*=
+   - must follow options
+   - first string that:
+     - does not start with "-" or "--"
+     - does not follow a optional parameter
+     - or all strings following a string "--"
+
+*** tests
+#+BEGIN_SRC lisp
+  (labels ((optp (str)
+             (or (and (>= (length str) 2)
+                      (char=  #\- (schar str 0))
+                      (char/= #\- (schar str 1)))
+                 (and (> (length str) 2)
+                      (char=  #\- (schar str 0))
+                      (char=  #\- (schar str 0))
+                      (char/= #\- (schar str 1)))))
+           )
+    (let ((*args* (list "--help"))
+          (result nil))
+      (dolist (opt *args*)
+        (assert (equal (optp opt) t) (list result) "not an opt ~S" opt))))
+#+END_SRC
+
+*** references
+- http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
+
 ** TODO [0/40] options
 *** TODO --help
 Print a brief help message.
@@ -284,4 +329,4 @@ when standard output is a terminal and block buffered otherwise.
   baz
   qux
 #+END_SRC
-*** TODO 
+** TODO test forms
