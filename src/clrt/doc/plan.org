@@ -29,6 +29,87 @@ I will probably implement things I later find were unnecessary. I
 expect to discover that I have to implement things I don't find in the
 ERT reference source.
 
+* Planning
+** basic expectations
+*** should
+#+BEGIN_SRC lisp
+  (defmacro should (&body body)
+    (let ((var (gensym))
+          (out (gensym))
+          (err (gensym)))
+      `(let ((,var nil)
+             (,out nil))
+         (handler-case
+             (progn
+               (assert ,body (,var) clrt:fail ,var)
+               (setf ,out ,var))
+           (condition (,err)
+             (setf ,out ,err))))))
+#+END_SRC
+*** should-not
+#+BEGIN_SRC lisp
+  (defmacro should-not (&body body)
+    `(should (not ,body)))
+#+END_SRC
+*** should-error
+#+BEGIN_SRC lisp
+  ;; FIXME
+  (defmacro should-error ((err) &body body)
+    (let ((var (gensym))
+          (out (gensym)))
+      `(let ((,var nil)
+             (,out nil))
+         (handler-case
+             (progn
+               (check-type ,body ,err)
+               (setf ,out (make-condition clrt:fail ,var)))
+           (condition (,err)
+             (setf ,out ,err))))))
+#+END_SRC
+** test outcomes
+- passed, expectation met
+- failed, expectation unmet
+- unexepected error
+#+BEGIN_SRC lisp
+  (labels ((subject (str) nil))
+    (let ((controls (list "foo" "bar" "baz" "qux"))
+          (outcomes '())
+          (forecast t))
+      (dolist (ctrl controls outcomes)
+        (handler-case
+            (progn
+              (assert (eq (subject ctrl) forecast) (ctrl) "fail ~S" ctrl)
+              (push ctrl outcomes))
+          (simple-error (err)
+            (push err outcomes))))))
+#+END_SRC
+
+#+BEGIN_SRC lisp
+  (labels ((subject (str) nil))
+    (let ((controls (list "foo" "bar" "baz" "qux"))
+          (outcomes '())
+          (forecast t))
+      (dolist (ctrl controls outcomes)
+        (handler-case
+            (progn
+              (assert (eq (subject ctrl) forecast) (ctrl) "fail ~S" ctrl)
+              (push ctrl outcomes))
+          (simple-error (err)
+            (push err outcomes))))))
+#+END_SRC
+
+
+
+(labels ((optp (str)
+                    nil))
+           (let ((*args* (list "--help"))
+                 (result '()))
+             (dolist (opt *args* result)
+               (handler-case
+                   (assert (eq (optp opt) t) (opt) "Not an opt ~S"
+                   opt)
+                 (simple-error (err)
+
 * Features [0/6]
 
 ** TODO define ~CLRT~ package
