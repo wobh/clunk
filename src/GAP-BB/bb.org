@@ -1,0 +1,719 @@
+http://brauer.maths.qmul.ac.uk/Atlas/info/blackbox.html
+
+* ATLAS: Black box algorithms
+** Black box groups
+In this ATLAS, a black box group is an implementation of a group where the following operations are feasible:
+
+    - multiply two elements;
+    - invert an element;
+    - test whether an element is the trivial element;
+    - compute the order of an element (the order oracle);
+    - find a pseudo-random element (the random element oracle) 
+
+All the matrix and permutation groups we supply can be thought of as black box groups. A black box algorithm is an algorithm which works with any black box group.
+** Black box algorithms provided
+We currently provide two types of black box algorithm.
+
+    - Algorithms to find standard generators of a given group. These
+      are available in a computer-readable format in files named
+      Group[n]-find[m].
+    - Algorithms to check whether elements of a given group are
+      standard generators. These are available in a computer-readable
+      format in files named Group[n]-check[m].
+
+*** Examples
+
+The file M22d2G1-find1 finds a pair of standard generators for M22.2.
+
+#+BEGIN_EXAMPLE
+# Black box algorithm to find standard generators of M22.2
+
+	set F 0
+	set G 0
+	set V 0
+lbl SEMISTD
+	rand 1
+	ord 1 A
+	incr V
+	if V gt 1000 then timeout
+	if A notin 1 2 3 4 5 6 7 8 10 11 12 14 then fail
+	if F eq 0 then
+		if A eq 12 then
+			pwr 3 1 3
+			set F 1
+		endif
+	endif
+	if G eq 0 then
+		if A eq 14 then
+			pwr 7 1 2
+			set G 1
+		endif
+	endif
+	if F eq 0 then jmp SEMISTD
+	if G eq 0 then jmp SEMISTD
+
+	set X 0
+lbl CONJUGATE
+	incr X
+	if X gt 1000 then timeout
+	rand 4
+	cjr 3 4
+	mu 2 3 5
+	ord 5 D
+	if D notin 2 3 4 6 7 8 11 then fail
+	if D noteq 11 then jmp CONJUGATE
+
+	oup 2 2 3
+#+END_EXAMPLE
+
+The file LyG1-check1 checks that a pair of elements of Ly is a pair of standard generators. 
+
+#+BEGIN_EXAMPLE
+# Checker for Lyons group Ly
+
+# Check orders from definition
+chor 1 2
+chor 2 5
+mu 1 2 3
+chor 3 14
+mu 3 2 4
+mu 3 4 5
+mu 3 5 6
+chor 6 67
+
+# Find (3A, 5, 14) pair with right fingerprint to
+# prove that b is in 5A
+pwr 5 3 7
+mu 4 4 8
+mu 7 8 9
+chor 9 42
+pwr 14 9 10     # This is in 3A
+mu 5 6 11
+cj 2 11 12      # This is in 5A (providing b is)
+mu 10 12 13
+chor 13 14      # We have a (3A, 5, 14) pair...
+mu 13 12 14
+mu 13 14 15
+chor 15 30      # ...and it must be the unique (3A,5A,14) one.
+#+END_EXAMPLE
+
+** BBOX: a language for implementing black box algorithms
+
+The language (BBOX) we use to implement black box algorithms is described below. An interpreter for this language can be found at the BBOX Interpreter page.
+
+The language is an extension of the language used for straight line programs for making conjugacy class representatives, generators for maximal subgroups and so forth.
+
+*** Basics
+As for straight line programs, group elements are labelled by integers. In addition, we allow 26 counters (integer variables) labelled A to Z.
+
+Each command should appear on a separate line. Anything after a '#' symbol is a comment and is to be ignored.
+
+*** Commands for manipulating group elements
+The following commands perform operations with group elements.
+
+- oup [n] [g1] ... [gn] :: Output a list of n group elements and end
+                           the program.
+- mu g1 g2 g3 :: Let the group element g3 be g1 multiplied by g2. 
+- iv g1 g2 :: Let the group element $g_2$ be the inverse of $g_1$. 
+- pwr n g1 g2 :: Let g2 be the nth power of g1. Here n can be a number
+                 or a counter.
+- cj g1 g2 g3 :: Let g3 be g1 conjugated by g2. 
+- cjr g1 g2 :: Conjugate g1 by g2 `in place'. 
+- com g1 g2 g3 :: Let g3 be the commutator of g1 and g2. 
+- cp g1 g2 :: Copy the element g1 into g2. 
+- rand g1 :: Let g1 be a (pseudo-)random element of the group. 
+- ord g1 c :: Let the counter c be the order of the element g. 
+- chor g1 n :: Check whether element g has order n. Fail if not. 
+
+*** Commands for jumping and looping
+
+- lbl L :: Marker for a program label L. 
+- jmp L :: Jump to the label L. 
+- call L :: Jump to the label $L$ and record the current position in
+            the callstack. The command 'return' takes the program
+            back. This allows us to implement simple subroutines.
+- return :: Return to the location of the most recent 'call' instruction. 
+
+*** Commands for counter arithmetic
+
+- incr :: Increment the counter c. 
+- decr c :: Decrement the counter c. 
+- set c n :: Set the counter c to be n. 
+- add n1 n2 c :: Let the counter c be n1 + n2. 
+- sub n1 n2 c :: Let the counter c be n1 - n2. 
+- mul n1 n2 c :: Let the counter c be n1 n2. This command should not
+                 be confused with `mu' (which works with group
+                 elements).
+- div n1 n2 c :: Let the counter c be (the integer part of) n1 / n2. 
+- mod n1 n2 c :: Let the counter c be the residue of n1 modulo n2. 
+
+***  Logical commands
+There are two forms for logical commands.
+
+The single line form is:
+#+BEGIN_EXAMPLE
+if predicate then statement
+#+END_EXAMPLE
+
+The multi-line form is:
+
+#+BEGIN_EXAMPLE
+if predicate then
+ statements
+elseif predicate then
+ statements
+else
+ statements
+endif
+#+END_EXAMPLE
+
+Nested if-statements are only allowed with the multiline form.
+
+Predicates take one of the following forms:
+
+- c eq n :: Counter c is equal to n 
+- c noteq n :: Counter c is not equal to n 
+- c in n1 n2 ... nk :: Counter c is one of n1, n2, ... nk 
+- c notin n1 n2 ... nk :: Counter c is not one of n1, n2, ... nk 
+- c lt n :: Counter c is less than n 
+- c leq n :: Counter c is less than or equal to n 
+- c gt n :: Counter c is greater than n 
+- c geq n :: Counter c is greater than or equal to n 
+
+*** Terminating commands
+As well as the oup command for outputting group elements, there are other commands which can end a program.
+
+- true :: End the program, and return the boolean value `true' as an
+          answer to a decision problem.
+- false :: End the program, and return the boolean value `false' as an
+           answer to a decision problem.
+- timeout :: Report that the algorithm has spent `too long' on some
+             task. This may suggest that the incorrect group has been
+             given to the algorithm, or it may just be that we were
+             unlucky. Whether the program actually terminates with a
+             timeout is implementation dependent.
+- fail :: End the program, and report that the algorithm has
+          determined that the input given is invalid (\eg the group
+          given is not of the correct isomorphism type). This is a
+          more final mode of failure than that indicated by `timeout'.
+* ATLAS: BBOX interpreter
+
+An interpreter for the BBOX language has been written.
+** GAP version
+The GAP version of the interpreter has two commands.
+
+*** Command: prepareblackbox(filename)
+This command loads a BBOX program into memory, transforms it into an intermediate form ready for executing and performs a rudimentary syntax check. If successful, the program returns a structure containing a BBOX program ready for running.
+
+*** Command: blackbox(group, program, elements, options)
+This command runs a pre-loaded BBOX program on a given group. The parameters are:
+
+- group :: The group on which the algorithm is to be run;
+- program :: The BBOX program (the result of a call to
+             prepareblackbox)
+- elements :: A list of elements to become the initial `numbered'
+              elements. These might be a set of group generators for
+              example, or it could just be an empty list.
+- options :: A record containing various options to control the
+             execution of the program. No component is mandatory.
+
+The options have the following meanings:
+
+- verbose :: If true, print each instruction before executing. False
+             by default.
+- quiet :: If true, ignore all echo instructions in the program. False
+           by default.
+- orderfunction :: A function to replace GAP's Order method. Sometimes
+                   useful for large matrix groups, where we substitute
+                   a `vector order' method.
+- hardtimeout :: If false, continue after reaching a timeout
+                 instruction (printing a warning). True by default.
+- allowbreaks :: If true, allow break instructions, otherwise ignore
+                 them. True by default.
+
+** GAP interpreter
+
+#+BEGIN_EXAMPLE
+#######################################################################
+#
+# BBOX Interpreter v2 for GAP
+#
+# by Simon Nickerson, 2004-2005
+#
+#######################################################################
+
+
+notrel := function(rel)
+    local rels, i;
+    rels := [ "eq", "in", "gt", "lt", "geq", "leq", "notin", "noteq" ];
+    
+    i := Position(rels, rel);
+    if i = fail then
+        return fail;
+    else
+        return rels[9-i];
+    fi;
+end;
+
+prepareblackbox := function(filename)
+    
+    local labels, keywords, prog, inp, line, linenum, filelinenum,
+          linenums, s, ss, i, j, k, l, m, n, level, thenpos, elsepos,
+          iflines, endifline, newprog, lineended;
+    
+    keywords := [ "add", "break", "call", "chcl", "chor", "cj", "cjr", "com",
+                  "cp", "decr", "div", "echo", "else", "elseif", "endif",
+                  "fail", "false", "if", "incr", "inv", "iv",
+                  "jmp", "lbl", "mod", 
+                  "mu", "mul", "nop", "ord", "oup", "pwr", "rand", "return",
+                  "set", "sub", "timeout", "true" ];
+    
+    labels := [ ];
+    prog := [ ];
+    linenums := [ ];
+    
+    inp := InputTextFile(filename);
+    if inp = fail then
+        return fail;
+    fi;
+    line := ReadLine(inp);
+    linenum := 1;
+    filelinenum := 1;
+    s := [ ];
+
+    while not line = fail do
+        
+        i := Position(line, '#');
+        if not i = fail then
+            line := line{[1..i-1]};
+        fi;
+            
+        ss := SplitString(line, " \t\n", " \t\n");
+        if IsEmpty(ss) then
+            lineended := false;
+        elif ss[Size(ss)] = "&" then
+            s := Concatenation(s, ss{[1..Size(ss)-1]});
+            lineended := false;
+        else
+            s := Concatenation(s, ss);
+            lineended := true;
+        fi;
+        
+        if lineended then
+            if Number(s, x->x = "if") > 1 then
+                Print("Cannot have more than one 'if' at line ",
+                      filelinenum, "\n");
+                return fail;
+            fi;
+            
+            if not s[1] in keywords then
+                Print("Invalid keyword '", s[1], "' at line ",
+                      filelinenum, "\n");
+                return fail;
+            fi;
+            
+            for i in [2..Size(s)] do
+                n := Int(s[i]);
+                if not n = fail then
+                    s[i] := n;
+                fi;
+            od;
+            if s[1] = "lbl" then
+                Add(labels, [s[2], linenum]);
+            elif s[1] = "elseif" or s[1] = "else" or s[1] = "endif" then
+                Add(prog, [ "nop" ]);
+                Add(prog, s);
+                Add(linenums, 0);
+                Add(linenums, filelinenum);
+                linenum := linenum + 2;
+            elif s[1] = "if" and s[Size(s)] <> "then" then
+                s[1] := "_if";
+                Add(prog, s);
+                Add(linenums, filelinenum);
+                linenum := linenum + 1;
+            else
+                Add(prog, s);
+                Add(linenums, filelinenum);
+                linenum := linenum + 1;
+            fi;
+            s := [ ];
+        fi;
+
+        line := ReadLine(inp);
+        filelinenum := filelinenum + 1;
+    od;
+    
+    CloseStream(inp);
+    
+    for i in [1..Size(prog)] do
+        k := Position(prog[i], "jmp");
+        if k = fail then
+            k := Position(prog[i], "call");
+        fi;
+        if not k = fail then
+            j := PositionProperty(labels, x->x[1] = prog[i][k+1]);
+            if j = fail then
+                Print("Label ", prog[i][k+1], " not found at line ",
+                      linenums[i], "\n");
+                return fail;
+            fi;
+            prog[i][k+1] := labels[j][2];
+        fi;
+    od;
+    
+    # Preprocess if elseif else then
+    for i in [1..Size(prog)] do
+        if prog[i][1] = "if" then
+            level := 1;
+            iflines := [ i ];
+            endifline := 0;
+            for k in [i+1..Size(prog)] do
+                if prog[k][1] = "if" then
+                    level := level + 1;
+                fi;
+                if prog[k][1] = "endif" then
+                    level := level - 1;
+                    if level = 0 then
+                        Add(iflines, k);
+                        endifline := k;
+                        break;
+                    fi;
+                fi;
+                if level = 1 and prog[k][1] = "else" then
+                    Add(iflines, k);
+                fi;
+                if level = 1 and prog[k][1] = "elseif" then
+                    Add(iflines, k);
+                fi;
+            od;
+            
+            if endifline = 0 then
+                Print("No endif for if at line ", linenums[i], "\n");
+                return fail;
+            fi;
+            
+            for l in [1..Size(iflines)-1] do
+                k := iflines[l];
+                if prog[k][1] = "else" then
+                    prog[k][1] := "nop";
+                else
+                    prog[k][1] := "_if";
+                    prog[k][3] := notrel(prog[k][3]);
+                    m := Position(prog[k], "then");
+                    if m <> Size(prog[k]) then
+                        Print("Misplaced 'then' at line ", linenums[k], "\n");
+                        return fail;
+                    fi;
+                    Add(prog[k], "jmp");
+                    Add(prog[k], iflines[l+1]);
+                fi;
+                prog[iflines[l+1]-1] := ["jmp", endifline];
+            od;
+            
+            prog[endifline] := [ "nop" ];
+            
+        fi;
+        
+        if prog[i][1] in [ "else", "elseif", "endif" ] then
+            Print("Unexpected '", prog[i][1], "' at line ", linenums[i], "\n");
+            return fail;
+        fi;
+        
+    od;
+    
+    return prog;
+end;    
+
+
+
+performinstruction := function(fullline, ins, G, ans, gpelts, ctr, options)
+                      
+    local toval, tonum, testresult, set, i, o,
+          newins, thenpos, elsepos;
+    
+    tonum := x->INT_CHAR(x[1]) - 64;
+    toval := function(x)
+        local n;
+        n := Int(x);
+        if n = fail then
+            return ans.vars[tonum(x)];
+        fi;
+        return n;
+    end;
+    
+    if ins[1] = "_if" then
+        thenpos := Position(ins, "then");
+        elsepos := Position(ins, "else");
+        if thenpos = fail then
+            Print("'if' statement must have corresponding 'then' at line ",
+                  ctr, "\n");
+            return fail;
+        fi;
+        if elsepos = fail then
+            elsepos := Size(ins)+1;
+        fi;
+        
+        set := List([4..thenpos-1], x->toval(ins[x]));
+        if ins[3] = "eq" then
+            testresult := (toval(ins[2]) = toval(set[1]));
+        elif ins[3] = "noteq" then
+            testresult := (toval(ins[2]) <> toval(set[1]));
+        elif ins[3] = "geq" then
+            testresult := (toval(ins[2]) >= toval(set[1]));
+        elif ins[3] = "gt" then
+            testresult := (toval(ins[2]) > toval(set[1]));
+        elif ins[3] = "leq" then
+            testresult := (toval(ins[2]) <= toval(set[1]));    
+        elif ins[3] = "lt" then
+            testresult := (toval(ins[2]) < toval(set[1]));
+        elif ins[3] = "in" then
+            testresult := (toval(ins[2]) in set);
+        elif ins[3] = "notin" then
+            testresult := (not toval(ins[2]) in set);
+        else
+            Print("Syntax error in 'if' statement at line ", ctr, "\n");
+            return fail;
+        fi;
+        
+        if testresult then
+            newins := List([thenpos+1..elsepos-1], x->ins[x]);
+            ctr := performinstruction(fullline, newins,
+                           G, ans, gpelts, ctr, options);
+        elif elsepos <= Size(ins) then
+            newins := List([elsepos+1..Size(ins)], x->ins[x]);
+            ctr := performinstruction(fullline, newins,
+                           G, ans, gpelts, ctr, options);
+        fi;
+            
+    elif ins[1] = "add" then
+        ans.vars[tonum(ins[4])] := toval(ins[2]) + toval(ins[3]);
+    elif ins[1] = "break" then
+        if options.allowbreaks then
+            Print("Type 'return 1;' to continue.\n");
+            i := 0 / 0;
+        fi;
+    elif ins[1] = "call" then
+        Add(ans.callstack, ctr);
+        if Size(ans.callstack) > 10 then
+            Print("Call stack overflow\n");
+            return fail;
+        fi;
+        ctr := ins[2] - 1;  # -1 because ctr gets increased by 1
+    elif ins[1] = "chcl" then
+        ans.result := true;
+        if not options.classfunction(gpelts[ins[2]], ins[3]) then
+            Print("CCL check failed for element ", ins[2], "\n");
+            ans.result := false;
+            return false;
+        fi;
+        ans.class := ans.class + 1;
+    elif ins[1] = "chor" then
+        ans.result := true;
+        if not options.orderfunction(gpelts[ins[2]]) = ins[3] then
+            Print("Order check failed: element ", ins[2], " has order ",
+                  Order(gpelts[ins[2]]), " and not ", ins[3], "\n");
+            ans.result := false;
+            return false;
+        fi;
+        ans.order := ans.order + 1;
+    elif ins[1] = "cj" then
+        gpelts[ins[4]] := gpelts[ins[2]]^gpelts[ins[3]];
+        ans.conjugate := ans.conjugate + 1;
+    elif ins[1] = "cjr" then
+        gpelts[ins[2]] := gpelts[ins[2]]^gpelts[ins[3]];
+        ans.conjugateinplace := ans.conjugateinplace + 1;
+    elif ins[1] = "com" then
+        gpelts[ins[4]] := gpelts[ins[2]]^-1*gpelts[ins[3]]^-1*
+                          gpelts[ins[2]]*gpelts[ins[3]];
+        ans.commutator := ans.commutator + 1;
+    elif ins[1] = "cp" then
+        gpelts[ins[3]] := gpelts[ins[2]];
+    elif ins[1] = "decr" then
+        ans.vars[tonum(ins[2])] := ans.vars[tonum(ins[2])] - 1;
+    elif ins[1] = "div" then
+        ans.vars[tonum(ins[4])] := Int(toval(ins[2]) / toval(ins[3]));
+    elif ins[1] = "echo" then
+        if not options.quiet then
+            for i in [2..Size(ins)] do
+                if IsString(ins[i]) and ins[i][1] = '$' then
+                    Print(toval(ins[i]{[2]}), " ");
+                else
+                    Print(ins[i], " ");
+                fi;
+            od;
+        fi;
+        Print("\n");
+    elif ins[1] = "fail" then
+        Print("Black box algorithm failed.\n");
+        Print("Last line was: ", fullline, "\n");
+        Print("Variables: ", ans.vars, "\n");
+        return fail;
+    elif ins[1] = "false" then
+        ans.result := false;
+        return false;
+    elif ins[1] = "incr" then
+        ans.vars[tonum(ins[2])] := ans.vars[tonum(ins[2])] + 1;
+    elif ins[1] = "iv" or ins[1] = "inv" then
+        gpelts[ins[3]] := gpelts[ins[2]]^-1;
+        ans.invert := ans.invert + 1;
+    elif ins[1] = "jmp" then
+        ctr := ins[2] - 1;  # -1 because ctr gets increased by 1
+    elif ins[1] = "mod" then
+        ans.vars[tonum(ins[4])] := toval(ins[2]) mod toval(ins[3]);
+    elif ins[1] = "mu" then
+        gpelts[ins[4]] := gpelts[ins[2]] * gpelts[ins[3]];
+        ans.multiply := ans.multiply + 1;
+    elif ins[1] = "mul" then
+        ans.vars[tonum(ins[4])] := toval(ins[2]) * toval(ins[3]);
+    elif ins[1] = "nop" then
+        # Do nothing
+    elif ins[1] = "ord" then
+        o := options.orderfunction(gpelts[ins[2]]);
+        ans.vars[tonum(ins[3])] := o;
+        if options.verbose then
+            Print("# o(g", ins[2], ") = ", o, "\n");
+        fi;
+        ans.order := ans.order + 1;
+    elif ins[1] = "oup" then
+        ans.gens := List([3..2+ins[2]], x->gpelts[ins[x]]);
+        return false;
+    elif ins[1] = "pwr" then
+        gpelts[ins[4]] := gpelts[ins[3]] ^ (toval(ins[2]));
+        ans.power := ans.power + 1;
+    elif ins[1] = "rand" then
+        gpelts[ins[2]] := PseudoRandom(G);
+        ans.random := ans.random + 1;
+    elif ins[1] = "return" then
+        if IsEmpty(ans.callstack) then
+            Print("Call stack empty at line ", ctr, "\n");
+            return fail;
+        fi;
+        ctr := ans.callstack[Size(ans.callstack)]; # N.B. no -1
+        ans.callstack := List([1..Size(ans.callstack)-1],
+                              x->ans.callstack[x]);
+    elif ins[1] = "set" then
+        ans.vars[tonum(ins[2])] := toval(ins[3]);
+    elif ins[1] = "sub" then
+        ans.vars[tonum(ins[4])] := toval(ins[2]) - toval(ins[3]);
+    elif ins[1] = "timeout" then
+        if options.hardtimeout then
+            Print("Timed out: check group is correct.\n");
+            return fail;
+        else
+            Print("Warning: timed out. Continuing.\n");
+        fi;
+    elif ins[1] = "true" then
+        ans.result := true;
+        return false;
+    else
+        Print("Unrecognised command '", ins[1], "' at line ", ctr, "\n");
+        return fail;
+    fi;
+    
+    return ctr;
+    
+end;
+
+
+
+blackbox := function(G, prog, input, options)
+    
+    local i, ctr, ins, gpelts, starttime, ans;
+    
+    # Default options
+    if not IsBound(options.allowbreaks) then
+        options.allowbreaks := true;
+    fi;
+    if not IsBound(options.verbose) then
+        options.verbose := false;
+    fi;
+    if not IsBound(options.quiet) then
+        options.quiet := false;
+    fi;
+    if not IsBound(options.orderfunction) then
+        options.orderfunction := Order;
+    fi;
+    if not IsBound(options.hardtimeout) then
+        options.hardtimeout := true;
+    fi;
+    if not IsBound(options.classfunction) then
+        options.classfunction := function(x,y) return true; end; 
+    fi;
+    
+    ans := rec(multiply := 0,
+               invert := 0,
+               power := 0,
+               order := 0,
+               class := 0,
+               random := 0,
+               timetaken := 0,
+               conjugate := 0,
+               conjugateinplace := 0,
+               commutator := 0,
+               vars := [ ],
+               callstack := [ ]
+               );
+    
+    ctr := 1;
+    gpelts := ShallowCopy(input);
+    starttime := Runtime();
+    
+    # Main loop 
+    repeat
+        ins := prog[ctr];
+        if options.verbose then
+            if ctr < 100 then Print(" "); fi;
+            if ctr < 10 then Print(" "); fi;
+            Print(ctr, ". ");
+            for i in ins do
+                Print(i, " ");
+            od;
+            Print("\n");
+        fi;
+        ctr := performinstruction(ins, ins, G, ans, gpelts,
+                       ctr, options);
+        if ctr = fail then
+            return fail;
+        fi;
+        if ctr = false then
+            break;
+        fi;
+        ctr := ctr + 1;
+    until ctr > Size(prog);    
+    
+    ans.timetaken := Runtime() - starttime;
+    return ans;
+    
+end;
+
+blackboxtrials := function(G, filename, numtrials)
+    
+    local i, prog, options, ans, cost, outputtime;
+    
+    prog := prepareblackbox(filename);
+    options := rec(allowbreaks := false,
+                   verbose := false);
+    cost := 0;
+    outputtime := Runtime();
+    for i in [1..numtrials] do
+        repeat
+            ans := blackbox(G, prog, options);
+            if ans = fail then
+                Print("Algorithm failed. Trying again.\n");
+            fi;
+        until not ans = fail;
+        cost := cost + ans.random;
+        if Runtime() - outputtime > 5000 then
+            Print("Trial ", i, "/", numtrials,
+                  ": average cost = ", Int(cost*100/i), "/100\n");
+            outputtime := Runtime();
+        fi;
+    od;
+    
+    return cost / numtrials;
+    
+end;
+#+END_EXAMPLE
+
+** Magma version
+There is currently no Magma version of the interpreter available. 
