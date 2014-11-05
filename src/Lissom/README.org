@@ -1,0 +1,34 @@
+#+TITLE: Lissom
+#+DATE: <2014-11-04 Tue>
+#+AUTHOR: William Clifford
+#+EMAIL: mr.william.clifford@gmail.com
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline
+#+OPTIONS: author:t c:nil creator:comment d:(not "LOGBOOK") date:t
+#+OPTIONS: e:t email:nil f:t inline:t num:t p:nil pri:nil stat:t
+#+OPTIONS: tags:t tasks:t tex:t timestamp:t toc:t todo:t |:t
+#+CREATOR: Emacs 24.3.1 (Org mode 8.2.7c)
+#+DESCRIPTION: Blosxom-like blogging in Common Lisp
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+
+* TODO Introduction
+
+Blosxom is simple enough that I almost wrote something like it by
+accident. Actually, mine would have been worse. But it's still an
+inspiring example, and I think it would be worth translating into
+other languages as a learning exercise. So I'm thinking about it doing
+it in Common Lisp.
+
+It's been done already, of course, see <<*References>>, but of course
+I still want to try it myself.
+
+* References
+
+- http://blosxom.sourceforge.net/
+- http://pyblosxom.github.io/
+- http://blog.plover.com/oops/blosxom-sux.html
+- http://coderepos.org/share/wiki/BlosxomClones
+- http://lisp-blosxom.sourceforge.net/
+

@@ -1,0 +1,20 @@
+;;;; lissom.lisp
+
+;;;; DESCRIPTION
+
+;;;; Common Lisp blog generator like blosxom
+
+;;;; AUTHORS
+
+;;;; William Clifford (wobh@yahoo.com)
+
+;;;; NOTES
+
+;;;; http://www.blosxom.com/
+;;;; http://pyblosxom.github.com/
+
+;;;; - lissom :: lithe, nimble, supple
+
+(defparameter *divisions*
+  '(book part chapter section paragraph article aside sidebar word figure table))
+
