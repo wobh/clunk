@@ -19,6 +19,9 @@
     :reader   conditions
     :initarg :conditions)))
 
+;;; TODO: rewrite as proper decorator. Probably these will be :AROUND
+;;; methods.
+
 (defclass attribute ()
   ((name
     :reader   name
@@ -30,6 +33,8 @@
     :accessor modifiers
     :initarg :modifiers)))
 
+;;; TODO: rethink this: are attributes merely value cells?
+
 (defclass adventurer ()
   ((names
     :accessor names
@@ -37,3 +42,5 @@
    (attributes
     :accessor attributes
     :initarg :attributes)))
+
+;;; TODO: rethink this: are adventurers composed of their attributes?
