@@ -1,49 +1,41 @@
-;;;; State
+;;;; spacetime
 
-;;;; Events
-
-(defclass event ()
-  ((state :reader what)
-   (locus :reader where)))
-
-(defmethod make-event ((event event) state locus)
-  (make-instance 'event )
-
-;;;; History
-
-(defclass history ()
-  ((event-type :reader event-type)
-   (events   :accessor events)))
-
-(defmethod record-event ((history history) event)
-  (assert (typep event (event-type history)))
-  (push event (events history)))
-
-(defmethod events-since ((history history) event)
-  (nreverse
-   (loop
-      for event in (events history)
-      collect event
-      until (equal event last-event))))
-
-(defmethod now ((history history))
-  (state (first (events history))))
-
-(defmethod here ((history history))
-  (locus (first (events history))))
+;;;; I've previously modeled spacetime as a push-down stack of
+;;;; "herenow" states. That's seemed clever at first. I like the idea
+;;;; of the accumulator and the general idea of spacetime as emergent
+;;;; property. However, here I'd like to explore some basic physics to
+;;;; understand it better and seek out another clever idea about
+;;;; spacetime.
 
 
-;;;; Creatures
+;;; Relativity, special
 
-(defclass creature (event)
-  ((health :reader health)))
+(defconstant +c+ 1/1
+  "The speed of light")
 
-(defun make)
+(defclass velocity ()
+  ((deltas :reader deltas :initarg :deltas))
+  (:documentation "Provides a slot `deltas' to hold a sequence of coordinate changes."))
 
-(defmethod wound-creature ((creature-history creature-history))
-  (record-event (make-event 'wound-creature 
+(defun make-velocity (&rest deltas)
+  (make-instance 'velocity :deltas deltas))
+
+(defmethod delta-t ((v velocity))
+  (first (deltas v)))
+
+(defmethod delta-z ((v velocity))
+  (second (deltas v)))
+
+(defmethod delta-y ((v velocity))
+  (third (deltas v)))
+
+(defmethod delta-x ((v velocity))
+  (fourth (deltas v)))
+
+(defmethod delta-n ((v velocity))
+  (rest ()))
+
+
+
+
   
-  (decf (now (health creature)))
-
-(defun creature-alive-p ((creature creature))
-  (< 0 (health creature)))
