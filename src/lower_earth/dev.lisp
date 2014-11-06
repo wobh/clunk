@@ -29,32 +29,39 @@
 (in-package "ORG.WOBH.LOWER-EARTH.SCRATCH")
 
 
-;;;; Support functions
+;;; Events functions
 
+;; History as pushdown stack, where adjacent event values must be
+;; different in some sense.
 
-
-(defun pushdiff (new-value place)
+(defun pushdiff (new-value place &optional (test 'eq) (accessor 'first))
   "Push in new value if it's different from the current first value."
-  (unless (eq new-value (first place))
+  (unless (funcall test new-value (funcall accessor place))
     (push new-value place)))
 
-(defun epushdiff (new-value place)
+(defun epushdiff (new-value place &optional (test 'eq) (accessor 'first))
   "Push in new value if it's different from the current first value. Raise an error if not."
-  (if (not (eq new-value (first place)))
-      (push new-value place)
-      (error "new-value ~S is the same as current ~S" new-value (first place))))
+  (unless (pushdiff new-value place test accessor)
+    (error "new-value ~S is the same as current ~S" new-value (first place))))
 
-;;;; 
+
+;;; Beings
 
 (defclass being ()
-  ((being-type :reader being-type :initarg :type)
-   (states :accessor states)))
+  ((states :accessor states))
+  (:documentation "Beings is an actor or agent of some kind"))
 
-;;;; Worlds as classes
+(defmethod think ((being being))
+  "Consider the current state and act."
+  )
+
+
+;;; Worlds
 
 (defclass world ()
   ((things :accessor things :initform (make-hash-table))
-   (places :accessor places :initform ())))
+   (places :accessor places :initform ()))
+  (:documentation "A world has places and things"))
 
 (defmethod make ((world world) name &optional value)
   (with-accessors ((things things)) world
@@ -74,10 +81,15 @@
   (with-accessors ((things things)) world
     (remhash name things)))
 
-(defun make-thing (name place world)
-  ())
-
 (defparameter *world* (make-instance 'world))
+
+
+
+;;; Things
+
+
+
+;;; meh
 
 (defun setup-adv ()
   (make *world* adv-str)
@@ -183,8 +195,8 @@
                (appropriate-p (means agent) end))
     (call-next-method)))
 
-(defmethod walk ((agent agent) direction)
-  (use agent (legs agent)))
+(defmethod walk ((agent agent) direction speed)
+  (use agent (legs agent) move direction speed))
 
 (defmethod use ((agent agent) (legs legs) (walk end) direction &rest)
   ())
