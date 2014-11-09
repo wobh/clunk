@@ -152,8 +152,10 @@ quarter turns. In three-dimensions there are 3 axes and 6 facings, the
 smallest being can look down. At any given facing, it can turn to
 look at the other four.
 
-Larger beings turn to face what seems like an arbitrary number of
-directions
+Larger beings turn in rotations to face what seems like an arbitrary
+number of directions. I'm not sure how to implement the dimensional
+aspect described above, but I think the implementation of angle below
+will serve.
 
 #+BEGIN_SRC lisp
   (defun anglep (n)
@@ -173,8 +175,96 @@ directions
         (and (= a1 1) (= a2 0))))
 #+END_SRC
 
+** Velocity
 
-A 
+Putting together the idea of speed and the idea of direction we find
+the idea of velocity. Where speed is a scalar value, velocity is a
+vector for it has both magnitude and direction. We can encode this in
+a variety of ways.
+
+For better or worse, Common Lisp uses the word "vector" for a
+one-dimensional array. We can redefine it in a package, but we can
+probably just as easily use it for our purposes. Start with these two
+methods.
+
+#+BEGIN_SRC lisp
+  (defmethod basis ((v vector) i)
+    "Accessor for vectors"
+    (aref v i))
+  
+  (defmethod bases ((v vector))
+    "List values in vector"
+    (coerce v 'list))
+#+END_SRC
+
+*** Cartesianesque
+
+Cartesian space is likely the most familiar. Some number of orthagonal
+axes, with an origin point at zero define the space. For reasons I
+hope will be clear at the end of this section I won't implement
+Cartesian vectors in quite the way I learned them in school. Here's
+how to understand the Cartesianesque vectors I'm using.
+
+Each =basis= of the vector is a rational number, the absolute value of
+represents a speed along a particular axis. The positive or negative
+value of the =basis= represents the direction along the axis.
+
+I will not formally define any mappings of the vector indices to
+particular axes. However, if it seems appropriate to use a Common Lisp
+array to represent a space, the vector axis will follow (y, x) order
+for 2d arrays, and (z, y, x, ...) order for arrays of 3 or more
+dimensions. The reason for this is that CL arrays have a default
+=row-major-index= ordering and this way applying the vector to change
+a position on the ray will naturally align with =row-major-index=
+order of the array subscripts.
+
+#+BEGIN_SRC lisp
+  (defun c-vector-p (v)
+    "Test if argument could be a C-VECTOR"
+    (every (bases v) 'rationalp))
+  
+  (defun c-vector (&rest bases)
+    "Create a Cartesian vector"
+    (assert (every bases 'rationalp))
+    (make-array (length bases)
+                :element-type 'rational
+                :fill-pointer t
+                :initial-contents bases))
+  
+  (defmethod distance ((v1 vector))
+    "Distance of vector"
+    (labels ((square (n) (expt n 2)))
+      (sqrt (reduce #'+ (map 'list #'square (bases v1))))))
+#+END_SRC
+
+*** Spherical
+
+Spherical vectors may be convenient for this exercise. They are
+composed of a radial magnitude (which can be defined with =(distance
+(c-vector ...))=) and enough angles to describe the vector's
+direction on orthagonal planes.
+
+#+BEGIN_SRC lisp
+  (defun s-vector-p (v)
+    "Test if argument could be an S-VECTOR"
+    (let ((b (bases v)))
+      (and (distancep (first b))
+           (every (rest b) 'anglep))))
+  
+  (defun s-vector (&rest args)
+    "Create a spherical vector"
+    (let ((v (make-array (length args)
+                         :fill-pointer t
+                         :initial-contents args)))
+      (or (check-type v `(satisfies s-vector-p)) v)))
+#+END_SRC
+
+** Code review
+
+*** TODO make sure c-vector and s-vector work as expected
+
+*** TODO bases doesn't check input is a vector
+** Questions [/]
 
 ** solid angle of unit n-sphere
 
@@ -189,5 +279,165 @@ I might have translated this wrong.
            (expt 2 d)
            (expt 1/2 (/ (1- d) 2)))))
 #+END_SRC
+
+
+* TODO Coordinates
+
+Where are we? 
+
+Defining positions. Rehash vectors.
+
+#+BEGIN_SRC lisp
+  (defun positionp (p)
+    "A position is...")
+  
+  
+  ;; FIXME: this is old
+  (defclass position ()
+    ((coordinates :reader coords :initarg :coords))
+    (:documentation "A sequence of one or more numbers, called coordinates
+  The coordinates in the sequence may be of types:
+  
+  - either integers or ratios (not both mixed)
+    + representing coordinates/points in a rectilinear volume.
+    + each number is a distance from origin point (0) along orthagonal axes.
+    + number of points indicates dimensions of volume (usually 1 <= d <= 3).
+  
+  - one integer followed by one or more ratios between 0 and 1
+    + the integer represents a distance from an origin point.
+    + the ratios represent angular coordinates for orthagonal axis planes.
+    + the number of values represents the number of dimensions in the volume.
+  
+  In either case the order in which coordinates map to axes is up to the user."))
+  
+  (defmethod distance ((p1 vector) (p2 vector))
+    "Interval of positions")
+  
+#+END_SRC
+
+
+
+* TODO Co-motion
+
+- comparison
+- correspondence
+- correlation
+
+- velocity ("co-moving")
+
+#+BEGIN_SRC lisp
+  (defmethod velocity= ((v1 vector) (v2 vector))
+    "Are the two velocities the same?"
+    (equalp v1 v2))
+#+END_SRC
+
+* TODO Composition
+
+** matter/density
+
+** momentum
+
+* TODO Conservation
+
+** Change
+
+*** distance/duration
+**** displacement
+**** accelleration
+
+*** direction
+**** 
+*** disintegration
+
+* TODO Connections
+
+* TODO Topics
+** Momentum
+   - http://en.wikipedia.org/wiki/Momentum
+** Special Relativity
+   - http://en.wikipedia.org/wiki/Special_relativity
+** Basis
+   - http://en.wikipedia.org/wiki/Basis_(linear_algebra)
+** Rapidity
+   - http://en.wikipedia.org/wiki/Rapidity
+   - http://en.wikipedia.org/wiki/Velocity-addition_formula
+** Coordinate systems
+   - http://en.wikipedia.org/wiki/Coordinate_system
+   - http://en.wikipedia.org/wiki/Cartesian_coordinate_system
+   - http://en.wikipedia.org/wiki/Polar_coordinate_system
+   - http://en.wikipedia.org/wiki/Spherical_coordinate_system
+   - http://en.wikipedia.org/wiki/Curvilinear_coordinates
+   - http://en.wikipedia.org/wiki/Homogeneous_coordinates
+** Higher dimensions
+   - http://en.wikipedia.org/wiki/N-sphere
+   - http://en.wikipedia.org/wiki/Hypercube
+** Space
+   - http://en.wikipedia.org/wiki/Affine_space
+   - http://en.wikipedia.org/wiki/Position_(vector)
+   - http://en.wikipedia.org/wiki/Hyperbolic_space
+   - http://en.wikipedia.org/wiki/Minkowski_space
+   - http://en.wikipedia.org/wiki/Distance
+   - http://en.wikipedia.org/wiki/Norm_(mathematics)
+** Constants
+   - http://en.wikipedia.org/wiki/Physical_constant
+   - http://en.wikipedia.org/wiki/Natural_units
+   - http://en.wikipedia.org/wiki/Planck_units
+   - http://www.tauday.com/tau-manifesto
+** Complements
+  - http://en.wikipedia.org/wiki/Complementarity_(physics)
+  - 
+** Naming things is hard
+- TODO This could be adapted for Lexicode
+
+- time
+- mass
+- axis/es
+- span
+
+- basis/es (vector)
+- point
+- event
+- speed
+- range
+- frame
+- space
+- field
+
+- length
+- volume
+- affine
+- origin
+- source
+- vertex
+- matrix
+- vector
+- scalar
+- matter
+- extent/d
+
+- bearing
+- heading
+
+- duration
+- displace
+- distance
+- position
+- rapidity
+- velocity
+- location
+- interval
+
+- direction
+- dimension
+- magnitude
+- reference
+- spherical
+
+- coordinate
+
+- orientation
+- rectilinear
+- cylindrical
+
 
 * References
