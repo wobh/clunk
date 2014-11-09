@@ -30,8 +30,64 @@ expect to discover that I have to implement things I don't find in the
 ERT reference source.
 
 * Planning
-** basic expectations
-*** should
+
+** Useful built-ins
+
+*** =LET= mock environment values
+*** =FLET=, =LABELS= mock functions
+*** =HANDLER-CASE= =IGNORE-ERRORS= catch errors
+
+* Features [0/6]
+
+** TODO define ~CLRT~ package
+#+BEGIN_SRC lisp
+  (in-package "CL-USER")
+  
+  (defpackage "COMMON-LISP-REGRESSION-TESTING"
+    :nicknames "CLRT"
+    :use "CL"
+    :export "DEFTEST"
+    :export "SHOULD" "SHOULD-NOT" "SHOULD-ERROR"
+    :export "RUN-TESTS-BATCH" "RUN-TESTS-BATCH-AND-EXIT"
+    :export "RUN-TESTS-INTERACTIVELY"
+    :documentation "A port of ERT for Emacs lisp")
+  
+  (in-package "CLRT")
+#+END_SRC
+** TODO =test= structure
+
+#+BEGIN_SRC lisp
+  (defstruct test
+    "The data structure that represents a test case."
+    (name nil)
+    (documentation nil)
+    (body (assert nil))
+    (most-recent-result nil)
+    (expected-result-type :passed)
+    (tags '()))
+#+END_SRC
+
+** TODO =deftest=
+#+BEGIN_SRC lisp
+  (defmacro handle-result (result &optional var) 
+    `(,result ,var
+       (progn
+         (when *show-progress*
+           (show-progress ,result))
+         (push (list ,name ,result) clrt:*report*))))
+  
+  (defmacro deftest ((name args &optional documentation) &body body)
+    (declare (ignorable args))
+    (let ((report (gensym "REPORT"))
+          (result (gensym "RESULT")))
+      `(defun ,name ,args
+         ,documentation
+         (handler-case ,body
+           ,(handle-result clrt:pass)
+           ,(handle-result clrt:fail)
+           ,(handle-result clrt:err)))))
+#+END_SRC
+*** TODO =should=
 #+BEGIN_SRC lisp
   (defmacro should (&body body)
     (let ((var (gensym))
@@ -43,12 +99,13 @@ ERT reference source.
              (signal clrt:fail ,err)
              (signal clrt:pass ,var)))))
 #+END_SRC
-*** should-not
+*** TODO =should-not=
 #+BEGIN_SRC lisp
   (defmacro should-not (&body body)
     `(should (not ,body)))
 #+END_SRC
-*** should-error
+
+*** TODO =should-error=
 #+BEGIN_SRC lisp
   (defmacro should-error ((exp-err) &body body)
     (let ((err (gensym)))
@@ -59,12 +116,19 @@ ERT reference source.
          (serious-error (,err)
            (signal clrt:pass ,err)))))
 #+END_SRC
-** test outcomes
+** TODO =run-tests-interactively=
+
+** TODO =run-tests-batch=
+
+** TODO =run-tests-batch-and-exit=
+
+** TODO test outcomes
 *** passed, expectation met
 #+BEGIN_SRC lisp
   (define-condition clrt:pass ()
     )
 #+END_SRC
+
 *** failed, expectation unmet
 #+BEGIN_SRC lisp
   (define-condition clrt:fail ()
@@ -99,49 +163,28 @@ ERT reference source.
             (push err outcomes))))))
 #+END_SRC
 
-
-
-(labels ((optp (str)
-                    nil))
-           (let ((*args* (list "--help"))
-                 (result '()))
-             (dolist (opt *args* result)
-               (handler-case
-                   (assert (eq (optp opt) t) (opt) "Not an opt ~S"
-                   opt)
-                 (simple-error (err)
-
-* Features [0/6]
-
-** TODO define ~CLRT~ package
-
-** TODO =test= structure
-
+*** error handling stuff
 #+BEGIN_SRC lisp
-  (defstruct test
-    "The data structure that represents a test case."
-    (name nil)
-    (documentation nil)
-    (body (assert nil))
-    (most-recent-result nil)
-    (expected-result-type :passed)
-    (tags '()))
+  (labels ((optp (str) nil))
+    (let ((*args* (list "--help"))
+          (result '()))
+      (dolist (opt *args* result)
+        (handler-case
+            (assert (eq (optp opt) t) (opt) "Not an opt ~S"
+                    opt)
+          (simple-error (err))))))
 #+END_SRC
 
-** TODO =deftest=
-
-*** TODO =should=
-
-*** TODO =should-not=
-
-*** TODO =should-error=
-
-** TODO =run-tests-interactively=
-
-** TODO =run-tests-batch=
-
-** TODO =run-tests-batch-and-exit=
-
+#+BEGIN_SRC lisp
+  (let ((expect-valid (list 1 2 3))
+        report)
+    (dolist (con expect-valid)
+      (handler-case (check-type con integer)
+        (type-error ()
+          (progn
+            (princ #\*)))
+        (princ (if err #\* #\.)))))
+#+END_SRC
 * Other testing packages
 
 ** reviews of Common Lisp testing packages:
