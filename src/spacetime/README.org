@@ -1,0 +1,29 @@
+#+TITLE:     CL Spacetime README
+#+AUTHOR:    William Clifford
+#+EMAIL:     wobh@yahoo.com
+#+DATE:      2014-11-08 Sat
+#+DESCRIPTION: Simple spacetime physics calculator in Common Lisp
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:6 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT:
+
+* Introduction
+
+Spacetime physics is a fascinating topic that I've explored shallowly
+but repeatedly for a long time. As usual, the math parts fluster and
+intimidate me. In an attempt to finally understand this subject
+better, I thought I would try to implement the math parts in Common
+Lisp.
+
+I'm going to try this using Emacs Org-mode for both literate
+programming as well as planning and drafting code.
+
+* References
+

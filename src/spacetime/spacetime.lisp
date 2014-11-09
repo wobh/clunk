@@ -1,11 +1,5 @@
 ;;;; spacetime
 
-;;;; I've previously modeled spacetime as a push-down stack of
-;;;; "herenow" states. That's seemed clever at first. I like the idea
-;;;; of the accumulator and the general idea of spacetime as emergent
-;;;; property. However, here I'd like to explore some basic physics to
-;;;; understand it better and seek out another clever idea about
-;;;; spacetime.
 
 ;;; Relativity, special
 
@@ -54,7 +48,7 @@
 ;;; Have to implement two basic concepts: position and momentum.
 
 (defclass position ()
-  ((coordinates :reader coords :iniotarg :coords))
+  ((coordinates :reader coords :initarg :coords))
   (:documentation "A sequence of one or more numbers, called coordinates
 The coordinates in the sequence may be of types:
 
@@ -195,11 +189,11 @@ of dimensions."))
 ;;; bearing
 ;;; heading
 
-;;; rapidity
 ;;; duration
 ;;; displace
 ;;; distance
 ;;; position
+;;; rapidity
 ;;; velocity
 ;;; location
 ;;; interval
