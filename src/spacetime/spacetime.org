@@ -22,6 +22,23 @@ accumulator and the general idea of spacetime as emergent
 property. However, here I'd like to explore some basic physics to
 understand it better and seek out another clever idea about spacetime.
 
+* COMMENT Properties 						   :noexport:
+
+#+PROPERTY: header-args  :mkdirp yes :noweb yes :padline no
+#+PROPERTY: header-args+ :tangle-mode (identity #o700)
+
+#+BEGIN_SRC elisp :results silent
+  (defun tangle-done (file &optional dir)
+    (unless dir
+      (setq dir (or (file-name-directory file) ".")))
+    (when (org-entry-is-done-p)
+        (concat (file-name-as-directory dir) file)))
+  
+  (defun noweb-done (ref)
+    (when (org-entry-is-done-p)
+      ref))
+#+END_SRC
+
 * Celerity 
 
 Speed is a ratio of distance to duration. As a scalar value distance
@@ -86,14 +103,13 @@ Possibilities:
 An object moving at speed =1/t= where =t > 1= seems to have a choice
 among =t= time units in order to make it's move.
 
+Possibilities
+
+- 
+
 **** TODO How does it choose?
 
 **** TODO What could influence that choice?
-
-*** TODO 
-
-
-
 
 ** Code review
 
@@ -105,6 +121,8 @@ These tests are called "predicates" and traditionally named with "p"
 at the end of the type name, or "-p" if the type name is multiple
 words.
 
+#+NAME: celerity.lisp
+#+HEADER: tangle (tangle-done "celerity.lisp" "./src")
 #+BEGIN_SRC lisp
   (defun distancep (d)
     "A distance must be a positive integer."
@@ -130,7 +148,6 @@ words.
     "Speed definition"
     `(satisfies speedp))
 #+END_SRC
-
 * Circular
 
 Our first notion of direction emerges from a primal experience of
@@ -146,17 +163,58 @@ orientation. The 1d being has no use for "right" or "left" only
 "reverse". 
 
 The smallest 2d being has a new orthagonality it can look down. Order
-and direction matter. After one turn, only reverse can bring it
+and direction matter. After one turn, only the inverse can bring it
 back. To make a full turn without changing direction, it must make 4
 quarter turns. In three-dimensions there are 3 axes and 6 facings, the
-smallest being can look down. At any given facing, it can turn to
-look at the other four.
+smallest being can look down.
+
+Valid directions for any axis could be represented by 1, or -1. A
+list of directions could be typed:
+
+#+BEGIN_SRC lisp
+  (defun directionp (dir)
+    "A valid direction must be a sequence containing either 1 or -1."
+    (labels ((dirp (dlist) (every dlist (lambda (d) (= 1 (abs d))))))
+      (etypecase dir
+        (list (dirp dir))
+        (vector (dirp (coerce 'list dir))))))
+  
+  (deftype direction ()
+    "Direction definition"
+    `(satisfies directionp))
+#+END_SRC
+
+To implement multiple directions as one of the lisp sequence types and
+defining some helpful methods. I'm not interested in formally defining
+a direction class, I'll have to do some internal type checking.
+  
+#+BEGIN_SRC lisp
+  (defmethod reverse ((dir sequence))
+    "Return the reverse direction"
+    (check-type dir direction "a direction")
+    (labels ((flip (d) (* -1 d)))
+      (etypecase dir
+        (list (mapcar #'flip dir))
+        (vector (map 'vector #'flip dir)))))
+  
+  (defmethod combine ((d1 sequence) (d2 sequence))
+    "Combine directions"
+    (dolist (d (list d1 d2))
+      (check-type d 'direction "a direction"))
+    (let (longer shorter)
+      (if (< (length d1) (length d2))
+          (setf longer d1 shorter d2)
+          (setf longer d2 shorter d1))
+      (map-into 'list longer shorter)))
+#+END_SRC
 
 Larger beings turn in rotations to face what seems like an arbitrary
 number of directions. I'm not sure how to implement the dimensional
 aspect described above, but I think the implementation of angle below
 will serve.
 
+#+NAME: circular.lisp
+#+HEADER: :tangle (tangle-done "circular.lisp" "./src")
 #+BEGIN_SRC lisp
   (defun anglep (n)
     "Test if n is a valid angle."
@@ -174,7 +232,8 @@ will serve.
         (and (= a1 0) (= a2 1))
         (and (= a1 1) (= a2 0))))
 #+END_SRC
-
+*** TODO combine angles
+http://hyperphysics.phy-astr.gsu.edu/hbase/vect.html#vec4
 ** Velocity
 
 Putting together the idea of speed and the idea of direction we find
@@ -184,26 +243,30 @@ a variety of ways.
 
 For better or worse, Common Lisp uses the word "vector" for a
 one-dimensional array. We can redefine it in a package, but we can
-probably just as easily use it for our purposes. Start with these two
-methods.
+probably just as easily use it for our purposes. Although we can't
+subclass or modify Common Lisp built-in classes, we can add all the
+methods we want to them. For vectors, I'm starting with these two.
 
 #+BEGIN_SRC lisp
   (defmethod basis ((v vector) i)
-    "Accessor for vectors"
+    "Accessor for vector values."
     (aref v i))
   
   (defmethod bases ((v vector))
-    "List values in vector"
+    "List values in vector."
     (coerce v 'list))
 #+END_SRC
+
+We're ready to start thinking about the different kinds of spaces
+these vectors can describe movement through.
 
 *** Cartesianesque
 
 Cartesian space is likely the most familiar. Some number of orthagonal
-axes, with an origin point at zero define the space. For reasons I
-hope will be clear at the end of this section I won't implement
-Cartesian vectors in quite the way I learned them in school. Here's
-how to understand the Cartesianesque vectors I'm using.
+axes, intersecting at an origin point, zero, define the space. For
+reasons I hope will be clear bit later, I won't implement Cartesian
+vectors in quite the way I learned them in school. Here's how to
+understand the Cartesianesque vectors I'm using.
 
 Each =basis= of the vector is a rational number, the absolute value of
 represents a speed along a particular axis. The positive or negative
@@ -212,11 +275,11 @@ value of the =basis= represents the direction along the axis.
 I will not formally define any mappings of the vector indices to
 particular axes. However, if it seems appropriate to use a Common Lisp
 array to represent a space, the vector axis will follow (y, x) order
-for 2d arrays, and (z, y, x, ...) order for arrays of 3 or more
-dimensions. The reason for this is that CL arrays have a default
-=row-major-index= ordering and this way applying the vector to change
-a position on the ray will naturally align with =row-major-index=
-order of the array subscripts.
+for 2d arrays, and (z, y, x) order for arrays of 3 dimensions. The
+reason for this is that CL arrays have a default =row-major-index=
+ordering and this way applying the vector to change a position in the
+array will naturally align with =row-major-index= order of the array
+subscripts.
 
 #+BEGIN_SRC lisp
   (defun c-vector-p (v)
@@ -235,7 +298,18 @@ order of the array subscripts.
     "Distance of vector"
     (labels ((square (n) (expt n 2)))
       (sqrt (reduce #'+ (map 'list #'square (bases v1))))))
+  
+  (defmethod direction ((v1 vector))
+    "Direction of vector"
+    (labels ((dir (d) (ecase d (plusp 1) (minusp -1))))
+      (map 'list #'dir v1)))
 #+END_SRC
+
+**** TODO 4 or more dimensions
+
+I thought it was (z, y, x,...), but now I'm not sure each new axis
+doesn't have the effect of pushing itself on to the dimensions list
+list (..., z, y, x). I'll have to experiment with this again.
 
 *** Spherical
 
@@ -266,7 +340,9 @@ direction on orthagonal planes.
 *** TODO bases doesn't check input is a vector
 ** Questions [/]
 
-** solid angle of unit n-sphere
+** TODO n-sphere, n-ball
+
+*** solid angle of unit n-sphere
 
 I might have translated this wrong.
 
@@ -279,7 +355,6 @@ I might have translated this wrong.
            (expt 2 d)
            (expt 1/2 (/ (1- d) 2)))))
 #+END_SRC
-
 
 * TODO Coordinates
 
@@ -316,7 +391,6 @@ Defining positions. Rehash vectors.
 #+END_SRC
 
 
-
 * TODO Co-motion
 
 - comparison
@@ -338,24 +412,38 @@ Defining positions. Rehash vectors.
 ** momentum
 
 * TODO Conservation
-
 ** Change
 
-*** distance/duration
-**** displacement
-**** accelleration
+Perhaps this should be the first chapter. I could probably go a long
+way just with the ideas of inertia and entropy.
 
-*** direction
-**** 
-*** disintegration
+*** inertia
+**** distance/duration
+***** displacement
+***** accelleration
+
+**** direction
+*** entropy
+**** disintegration
 
 * TODO Connections
-
+** electromagnetism
+** gravitation
+** emergence
 * TODO Topics
 ** Momentum
    - http://en.wikipedia.org/wiki/Momentum
 ** Special Relativity
    - http://en.wikipedia.org/wiki/Special_relativity
+
+#+BEGIN_SRC lisp
+  (defun gamma (velocity)
+    (/ 1 
+       (sqrt
+        (- 1 (/ (expt velocity 2)
+                (expt +c+ 2))))))
+#+END_SRC
+
 ** Basis
    - http://en.wikipedia.org/wiki/Basis_(linear_algebra)
 ** Rapidity
@@ -383,10 +471,183 @@ Defining positions. Rehash vectors.
    - http://en.wikipedia.org/wiki/Natural_units
    - http://en.wikipedia.org/wiki/Planck_units
    - http://www.tauday.com/tau-manifesto
+
+*** Planck units
+
+Traditionally:
+
+- G :: gravitational constant
+- c :: speed of light in a vaccum
+- ke :: electric force constant (Coulomb's constant)
+- kb :: energy/temperature constant (Boltzmann's constant)
+- ℏ :: energy/angular frequency constant ("h-bar" or reduced Planck
+       constant)
+
+Funny note about h-bar and h
+
+h relates energy to frequency of light (simplification)
+h-bar relates energy to angular frequency (radians vs hertz)
+
+h-bar is h/2pi. If hbar = 1 then h = 2pi. if 2pi = 1 then h = hbar. I
+have no idea what this implies, if anything.
+
+***** TODO integrate when ready
+
+from http://en.wikipedia.org/wiki/Planck_units#Simplification_of_physical_equations
+
+****** gravitation
+#+BEGIN_SRC lisp
+  ;;; With G = 1
+  
+  (defun gravitation (m1 m1 d)
+    (- (/ (* m1 m2) (* d d))))
+#+END_SRC
+
+#+BEGIN_QUOTE
+In order for this last equation to be valid (without G present), F, m1, m2, and r are understood to be the dimensionless numerical values of these quantities measured in terms of Planck units. This is why Planck units or any other use of natural units should be employed with care; referring to G = c = 1, Paul S. Wesson wrote that, "Mathematically it is an acceptable trick which saves labour. Physically it represents a loss of information and can lead to confusion."
+#+END_QUOTE
+
+****** Einstein's field equation
+
+#+BEGIN_SRC lisp
+  ;; with G = c = 2pi = 1
+  
+  (defun G-tensor (stress-energy-tensor)
+    (* 4 stress-energy-tensor))
+#+END_SRC
+
+****** Mass energy equivalence
+
+#+BEGIN_SRC lisp
+  ;;; with c = 1 thus E = m
+  
+  (defclass matter-energy ()
+    ((me :reader mass :reader energy :initarg :me)))
+#+END_SRC
+
+****** Energy momentum relation
+
+#+BEGIN_SRC lisp
+  ;; with c = 1 otherwise we'd have (* m m c c c c) and (* p p c c)
+  
+  (defmethod energy ((m mass) (p momentum))
+    (sqrt (+ (* m m) (* p p))))
+#+END_SRC
+
+****** Thermal energy per particle per degree of freedom
+
+with kb = 1, else ~(= E (/ (* kb T) 2))~
+
+#+BEGIN_SRC lisp
+  (defmethod energy ((t absolute-temperature))
+    (/ t 2))
+#+END_SRC
+
+****** Boltzmann's entropy formula
+
+S = kb * ln * omega
+kb - Boltzmann's constant
+omega - number of microstates consistent with macrostate
+
+with kb = 1
+
+#+BEGIN_SRC lisp
+  (defun entropy (omega)
+    (log omega))
+#+END_SRC
+
+****** Planck's law
+
+Surface intensity per unit solid angle per unit angular frequency
+for black body at temperature T.
+
+with:
+
+- I :: intensity
+- w :: frequency (small omega)
+- T :: absolute temperature
+- h-bar :: energy/angular frequency constant = 1
+- 2pi :: circle constant = 1
+- e :: ? probably Napier constant
+
+#+BEGIN_SRC lisp
+  (defun intensity (w T)
+    (* (/ (* w w) 8) (/ 1 (1- (expt e (/ w T))))))
+#+END_SRC
+
+****** Stefan-Boltzmann constant
+#+BEGIN_QUOTE
+"The total intensity radiated over all wavelengths increases
+as the temperature increases", of a black body which is proportional
+to the fourth power of the thermodynamic temperature.
+#+END_QUOTE
+
+- sigma :: =(/ (* pi pi kb kb kb kb) (* 60 hbar hbar hbar c c))=
+- kb :: Boltzmann constant
+- hbar :: reduced Planck constant
+- c :: speed of light in a vacuum
+
+#+BEGIN_SRC lisp
+  (defconstant sigma
+    (/ (* pi pi) 60)
+    "Stefan-Boltzmann constant.
+  
+  Black body radiation intensity to temperature")
+#+END_SRC
+
+****** TODO Bekenstein–Hawking black hole entropy
+
+****** TODO Schrödinger's equation
+
+****** TODO Hamiltonian form of Schrödinger's equation
+
+****** TODO Covariant form of the Dirac equation
+
+****** TODO Maxwell's equations
+****** TODO Black hole features
+
+Once stable, black holes are believed to retain just 3 features:
+
+- Q :: Electric charge
+- J :: Angular momentum
+- M :: Mass
+
+~(<= (* M M) (+ (* Q Q) (* J/M J/M)))~
+
+Black hole radius (Schwartzchild, 1916)
+
+~r = 2GM/c^2~ 
+
+#+BEGIN_SRC lisp
+  (defmethod radius ((bh black-hole))
+    (with-accessors ((m mass)
+                     (q electric-charge)
+                     (j angular-momentum)) bh
+      (cond ((< 0 q j)
+             ;; Kerr-Newman
+             )
+            ((and (zerop q) (< 0 j))
+             ;; Kerr
+             )
+            ((and (< 0 q) (zerop j))
+             ;; Reissner-Nordstrom
+             
+             )
+            ((= 0 q j)
+             ;; Schwartzchild
+             (* 2 m)))))
+  
+#+END_SRC
+
 ** Complements
   - http://en.wikipedia.org/wiki/Complementarity_(physics)
+  - position and momentum
+  - wave and particle
   - 
 ** Naming things is hard
+*** vocabulary
+
+
 - TODO This could be adapted for Lexicode
 
 - time
@@ -439,5 +700,19 @@ Defining positions. Rehash vectors.
 - rectilinear
 - cylindrical
 
+*** vernacular
+
+It might be useful to come with names of these generic measures
+independant of a formal system of units.
+
+- speck :: length
+- tick :: time
+- zap :: electrical charge
+- dizz :: angular momentum
+- heft :: mass-energy
+
+Eh, that's just being cute.
 
 * References
+- http://hyperphysics.phy-astr.gsu.edu/hbase/hph.html
+  + http://hyperphysics.phy-astr.gsu.edu/hbase/relativ/relcon.html#relcon
