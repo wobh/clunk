@@ -105,7 +105,10 @@ among =t= time units in order to make it's move.
 
 Possibilities
 
-- 
+- you can't observe it having moved before it did, so it moves on the
+  last tick of the duration.
+- randomly moves, and speed for any larger multiple of the minimum
+  duration must be an average or other reduction.
 
 **** TODO How does it choose?
 
@@ -115,11 +118,9 @@ Possibilities
 
 For anything that you define a type for, it's usually a good idea to
 define a true/false test for that type and use the test for the type
-definition.
-
-These tests are called "predicates" and traditionally named with "p"
-at the end of the type name, or "-p" if the type name is multiple
-words.
+definition. These tests are called "predicates" and traditionally
+named with "p" at the end of the type name, or "-p" if the type name
+is multiple words.
 
 #+NAME: celerity.lisp
 #+HEADER: tangle (tangle-done "celerity.lisp" "./src")
@@ -168,8 +169,10 @@ back. To make a full turn without changing direction, it must make 4
 quarter turns. In three-dimensions there are 3 axes and 6 facings, the
 smallest being can look down.
 
-Valid directions for any axis could be represented by 1, or -1. A
-list of directions could be typed:
+Valid directions for any axis could be represented by 1, or -1. Multi-
+dimensional directions can be implemented as one of the lisp sequence
+types containing only directions. Using types again a list of
+directions could be implemented so:
 
 #+BEGIN_SRC lisp
   (defun directionp (dir)
@@ -184,9 +187,10 @@ list of directions could be typed:
     `(satisfies directionp))
 #+END_SRC
 
-To implement multiple directions as one of the lisp sequence types and
-defining some helpful methods. I'm not interested in formally defining
-a direction class, I'll have to do some internal type checking.
+
+Here are some helpful methods. I'm not interested in formally defining
+a direction class right now, so I'll have to do some internal type
+checking.
   
 #+BEGIN_SRC lisp
   (defmethod reverse ((dir sequence))
@@ -209,9 +213,10 @@ a direction class, I'll have to do some internal type checking.
 #+END_SRC
 
 Larger beings turn in rotations to face what seems like an arbitrary
-number of directions. I'm not sure how to implement the dimensional
-aspect described above, but I think the implementation of angle below
-will serve.
+number of directions. Although it's probably similiar to the above,
+I'm not sure how to implement the multi-dimensional aspect described
+above, but for any given plane I think the implementation of angle
+below will serve.
 
 #+NAME: circular.lisp
 #+HEADER: :tangle (tangle-done "circular.lisp" "./src")
@@ -232,14 +237,14 @@ will serve.
         (and (= a1 0) (= a2 1))
         (and (= a1 1) (= a2 0))))
 #+END_SRC
-*** TODO combine angles
+*** TODO reverse and combine angles
 http://hyperphysics.phy-astr.gsu.edu/hbase/vect.html#vec4
 ** Velocity
 
-Putting together the idea of speed and the idea of direction we find
-the idea of velocity. Where speed is a scalar value, velocity is a
-vector for it has both magnitude and direction. We can encode this in
-a variety of ways.
+Putting together the idea of speed with the idea of direction I find
+the idea of velocity. Where speed is a scalar value with only a
+magnitude, velocity is a vector with magnitude and direction. We can
+encode this in a variety of ways.
 
 For better or worse, Common Lisp uses the word "vector" for a
 one-dimensional array. We can redefine it in a package, but we can
@@ -282,28 +287,127 @@ array will naturally align with =row-major-index= order of the array
 subscripts.
 
 #+BEGIN_SRC lisp
-  (defun c-vector-p (v)
-    "Test if argument could be a C-VECTOR"
-    (every (bases v) 'rationalp))
-  
-  (defun c-vector (&rest bases)
-    "Create a Cartesian vector"
-    (assert (every bases 'rationalp))
-    (make-array (length bases)
-                :element-type 'rational
-                :fill-pointer t
-                :initial-contents bases))
-  
-  (defmethod distance ((v1 vector))
-    "Distance of vector"
-    (labels ((square (n) (expt n 2)))
-      (sqrt (reduce #'+ (map 'list #'square (bases v1))))))
-  
-  (defmethod direction ((v1 vector))
-    "Direction of vector"
+  (defmethod c-direction ((v1 vector))
+    "Direction of cartesian velocity vector"
     (labels ((dir (d) (ecase d (plusp 1) (minusp -1))))
       (map 'list #'dir v1)))
+  
+  (defun c-velocity-p (v)
+    "Test if argument could be a c-velocity vector."
+    (every (mapcar #'abs (bases v)) 'speedp)
+    (every (direction v) 'directionp))
+  
+  (deftype c-velocity ()
+    "Define c-velocity vector"
+    `(satisfies c-velocity-p))
+  
+  (defun c-velocity (&rest bases)
+    "Create a Cartesian velocity vector."
+    (let ((cv (make-array (length bases)
+                          :element-type 'rational
+                          :fill-pointer t
+                          :initial-contents bases)))
+      (or (check-type cv 'c-velocity-p) cv)))
+  
+  ;;; TODO come up with a better name than "c-velocity"
 #+END_SRC
+
+There's a problem. It's an old problem, and fortunately a solved
+problem, but I've set myself up for it, and only half on purpose. You
+see, I knew this was coming, and I told myself I would think about it,
+but I forgot to do so. In any case I'll have to address it.
+
+**** The problem
+
+I said I was going to define a fundamental minimum distance unit
+of 1. But math has thwarted me. You see, that works fine for distances
+in a single dimension, but as soon as I added even one more, I run up
+against an ancient discovery and confoundment of incommeasurable
+things. The diagonal of a square cannot be rationally compared to a
+side.
+
+#+BEGIN_SRC lisp
+  (defmethod c-distance ((v1 vector))
+    "Distance of cartesian velocity vector"
+    (labels ((square (n) (expt n 2)))
+      (sqrt (reduce #'+ (map 'list #'square (bases v1))))))
+#+END_SRC
+
+What does this mean for our velocities? What does this mean for our
+minimum length?
+
+The solution that has come to us over the millenia is to invent
+"irrational" numbers. This is a good solution, but we've been faced
+with a practical problem of expressing their values in a convenient
+way. The popular solution is the decimal expansion which carries out a
+rationalization for some degree of precision and then stop, supposing
+that the loss of precision after that point is probably acceptable.
+
+| pwr | 1 |         2 |         3 |         4 |         5 |         6 |
+|-----+---+-----------+-----------+-----------+-----------+-----------|
+| 1/1 | 1 |         2 |         3 |         4 |         5 |         6 |
+| 1/2 | 1 | 1.4142136 | 1.7320508 |           | 2.2360680 | 2.4494897 |
+| 1/3 | 1 | 1.2599210 | 1.4422496 |           | 1.7099759 | 1.8171206 |
+| 2/3 | 1 | 1.5874011 | 2.0800838 | 2.5198421 | 2.9240177 | 3.3019272 |
+| 1/4 | 1 | 1.1892071 | 1.3160740 |           | 1.4953488 | 1.5650846 |
+| 3/4 | 1 | 1.6817928 | 2.2795071 | 2.8284271 | 3.3437015 | 3.8336586 |
+| 1/5 | 1 | 1.1486984 | 1.2457309 | 1.3195079 | 1.3797297 | 1.4309691 |
+| 2/5 | 1 | 1.3195079 | 1.5518456 |           | 1.9036539 | 2.0476725 |
+| 3/5 | 1 | 1.5157166 | 1.9331820 | 2.2973967 | 2.6265278 | 2.9301561 |
+| 4/5 | 1 | 1.7411011 | 2.4082247 | 3.0314331 | 3.6238983 | 4.1929627 |
+| 1/6 | 1 | 1.1224620 | 1.2009370 | 1.2599210 | 1.3076605 | 1.3480062 |
+| 5/6 | 1 | 1.7817974 | 2.4980495 | 3.1748021 | 3.8236225 | 4.4510183 |
+| 1/7 | 1 | 1.1040895 | 1.1699308 | 1.2190137 | 1.2584990 | 1.2917083 |
+| 2/7 | 1 | 1.2190137 | 1.3687381 |           | 1.5838196 | 1.6685104 |
+| 3/7 | 1 | 1.3459002 | 1.6013289 | 1.8114473 | 1.9932353 | 2.1552289 |
+| 4/7 | 1 | 1.4859943 | 1.8734440 | 2.2081790 | 2.5084846 | 2.7839271 |
+| 5/7 | 1 | 1.6406707 | 2.1917999 | 2.6918004 | 3.1569252 | 3.5960218 |
+| 6/7 | 1 | 1.8114473 | 2.5642542 | 3.2813414 | 3.9729870 | 4.6450114 |
+#+TBLFM: @2$2..@>$>=@1^($1)
+
+I find this state of affairs somewhat unsatisfying. The integers are
+all founded upon 1. The rationals founded upon the prime integers. But
+these "irrational" numbers are their own unique numerism, if you will,
+as foundational as 1 is to the integers, in their ability to produce
+unique values. (
+
+Presently, I have only enough math chops to be aware of this. I don't
+have the Lisp chops to implement what mathematician's generally do
+with irrationals which is to ignore the value of the decimal expansion
+and deal with it symbolically. I'll have to look into that.
+
+**** Questions 
+
+Again, still considering this as naively as possible.
+
+***** What do the irrational numbers mean physically? 
+
+Obviously any shape that requires an irrational length somewhere in
+it's expanse "exists". Even if we define shapes radially, the sides
+lengths of the sides become irrational with respect to the
+diagonals. I don't think a curvature exists such that I can set a
+minimum length as a radius and expect that a circle would be an
+integer multiple of it (or, coorespondingly, in any higher dimensional
+curvature).
+
+Speculations:
+
+Perhaps there isn't just one fundamental distance, but an infinite
+number of them, each with a fundamental duration required to traverse
+it. This is more or less what I did when I defined a circumference
+as 1.
+
+Perhaps cartesian space at the smallest scale is unstable and the
+tiniest volumes have to shift, stretching, squeezing and twisting
+themselves until purely integer dimensions remain. I think this is
+impossible, so they'll never find one, but constantly strive.
+
+***** What is the oneness of (sqrt 2)?
+
+Words just spew out sometimes. There are some important
+differences. =(* 2 (sqrt 2))= is 2. =(* 3 (sqrt 2))= is another
+irrational (same as =(expt 4 (/ 3 4))=), so no multiplicative identity
+there, one is still one.
 
 **** TODO 4 or more dimensions
 
@@ -313,24 +417,36 @@ list (..., z, y, x). I'll have to experiment with this again.
 
 *** Spherical
 
-Spherical vectors may be convenient for this exercise. They are
-composed of a radial magnitude (which can be defined with =(distance
-(c-vector ...))=) and enough angles to describe the vector's
-direction on orthagonal planes.
+Spherical velocity vectors may be convenient for this exercise. They
+are composed of a radial speed magnitude (which might be easiest to
+define with =(distance (c-velocity ...))=) and enough angles to
+describe the magnitudes' direction on orthagonal planes.
 
 #+BEGIN_SRC lisp
-  (defun s-vector-p (v)
-    "Test if argument could be an S-VECTOR"
+  (defmethod s-distance ((sv vector))
+    "Distance of a spherical velocity vector"
+    (first (bases sv)))
+  
+  (defmethod s-direction ((sv vector))
+    "Direction of a spherical velocity vector"
+    (rest (bases sv)))
+  
+  (defun s-velocity-p (sv)
+    "Test if argument could be an s-velocity vector."
     (let ((b (bases v)))
-      (and (distancep (first b))
+      (and (speedp (first b))
            (every (rest b) 'anglep))))
   
-  (defun s-vector (&rest args)
+  (deftype s-velocity ()
+    "Define s-velocity vector"
+    `(satisfies s-velocity-p))
+  
+  (defun s-velocity (&rest args)
     "Create a spherical vector"
-    (let ((v (make-array (length args)
+    (let ((sv (make-array (length args)
                          :fill-pointer t
                          :initial-contents args)))
-      (or (check-type v `(satisfies s-vector-p)) v)))
+      (or (check-type sv s-velocity) sv)))
 #+END_SRC
 
 ** Code review
@@ -386,8 +502,7 @@ Defining positions. Rehash vectors.
   In either case the order in which coordinates map to axes is up to the user."))
   
   (defmethod distance ((p1 vector) (p2 vector))
-    "Interval of positions")
-  
+    "Interval of positions")  
 #+END_SRC
 
 
@@ -644,7 +759,7 @@ Black hole radius (Schwartzchild, 1916)
   - position and momentum
   - wave and particle
   - 
-** Naming things is hard
+** COMMENT Naming things is hard
 *** vocabulary
 
 
