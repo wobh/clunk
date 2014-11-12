@@ -505,7 +505,6 @@ Defining positions. Rehash vectors.
     "Interval of positions")  
 #+END_SRC
 
-
 * TODO Co-motion
 
 - comparison
@@ -527,18 +526,22 @@ Defining positions. Rehash vectors.
 ** momentum
 
 * TODO Conservation
-** Change
+
+** TODO Change
 
 Perhaps this should be the first chapter. I could probably go a long
 way just with the ideas of inertia and entropy.
 
-*** inertia
+No one likes change, not even physics, where change is resisted from
+every quarter.
+
+*** TODO inertia
 **** distance/duration
 ***** displacement
 ***** accelleration
 
 **** direction
-*** entropy
+*** TODO entropy
 **** disintegration
 
 * TODO Connections
@@ -548,6 +551,7 @@ way just with the ideas of inertia and entropy.
 * TODO Topics
 ** Momentum
    - http://en.wikipedia.org/wiki/Momentum
+
 ** Special Relativity
    - http://en.wikipedia.org/wiki/Special_relativity
 
@@ -587,7 +591,174 @@ way just with the ideas of inertia and entropy.
    - http://en.wikipedia.org/wiki/Planck_units
    - http://www.tauday.com/tau-manifesto
 
+*** ideals objects
+- black body :: absorbs all electromagnetic radiation. The spectrum of
+                radiation emitted is proportional to it's temperature.
+- ideal gas ::
+- free space (vacuum) ::
+*** greek letters
+
+| name    | small | large | use                                           |
+|---------+-------+-------+-----------------------------------------------|
+| pi      | π     |       | ratio of a circle's circumference to diameter |
+| omega   | ω     |       | angular frequency (radians/time)              |
+| nu      | ν     |       | linear frequency (length/time)                |
+| lambda  | λ     |       | wavelength                                    |
+| rho     | ρ     |       | momentum (mass * velocity)                    |
+| epsilon | ε     |       | electric permittivity                         |
+| epsilon | Ε     |       | energy                                        |
+| theta   |       | Θ     | temperature                                   |
+| mu      | μ     |       | magnetic permeability                         |
+| alpha   | α     |       | fine structure constant                       |
+| phi     | φ     |       | phase constant of wave                        |
+| psi     | ψ     |       | wave function                                 |
+| alpha   |       | Α     | amplitude                                     |
+| tau     |       | Τ     | period or time                                |
+| tau     | τ     |       | ratio of a circle's circumference to radius   |
+| kappa   | κ     |       | wave number circular                          |
+| sigma   | σ     |       | wave number linear                            |
+
+*** roman letters
+
+| small | large | use                         |
+|-------+-------+-----------------------------|
+| c     |       | speed of light in a vaccuum |
+|       | G     | gravitational constant      |
+| e     |       | elementary charge constant  |
+| q     |       | alternate name for e        |
+|       | E     | energy                      |
+|       | T     | time                        |
+|       | S     | entropy                     |
+|       |       |                             |
+
+*** waves
+
+- T :: period (time)
+- Α :: amplitude (distance between the equilibrium and the height of disturbance)
+- λ :: wavelength (distance between to crests or troughs)
+- φ :: phase constant
+- ν :: frequency linear
+- ω :: frequency circular (angular)
+- σ :: wavenumber linear
+- κ :: wavenumber circular
+
+T =  1/ν
+ν =  1/T
+σ =  1/λ
+
+ω = 2π/T = 2πν
+λ = 2π/κ
+κ = 2π/λ
+
+
 *** Planck units
+
+**** Plank constants
+
+- E :: energy of a charged particle in a black-body
+- ν :: frequency of electromagnetic radiation emitted by particle
+- ℎ :: the proportion of ν/E
+
+E = νℎ
+ν = E/ℎ
+ℎ = E/ν
+
+
+- c :: speed of light in a vacuum
+- ν :: frequency of light
+- λ :: wavelength
+
+c = νλ
+
+
+Thus:
+
+E = νℎ/λ
+
+- ρ :: linear momentum
+- λ :: quantum wavelength (de Broglie)
+- ℎ :: proportion
+
+λ = ℎ/ρ
+ℎ = ρλ
+ρ = λ/ℎ
+
+When:
+
+- E :: energy
+- ω :: angular frequency (2πν) (radians/T)
+- ℏ :: ℎ/2π
+
+E = ωℏ
+
+- 
+
+| symbol | constant      |
+|--------+---------------|
+| ℎ      | ν/E or ρ/λ    |
+| ℏ      | ω/E or ρ/2πλ  |
+| ke     | 1/(4πε₀)      |
+| ε₀     | 1/(μ₀c²)      |
+| μ₀     |               |
+
+- μ₀ :: magnetic permeability in vacuum
+- ε₀ :: electric permittivity in vaccum
+- c₀ :: speed of light in a vacuum
+
+ε₀ = 1/(c₀c₀μ₀)
+c₀ = 1/sqrt(μ₀ε₀)
+
+- α :: fine structure constant
+- ke :: electric force constant (Coulomb)
+- e :: elementary charge constant
+- c :: speed of light in a vacuum
+- ℏ :: (reduced Plank constant)
+
+ε₀ = 1/(4π * ke)
+e² = 2ℎα/μ₀c = 2ℎαε₀c
+
+
+- F :: electrical force
+- ke :: electric force constant (Coulomb)
+- q :: point charge
+- r :: distance between charges q1 and q2
+
+F = ke * ((q1 * q2)/r^2)
+
+- R :: gas constant
+- P :: pressure (force/area)
+- V :: volume
+- n :: amount
+- T :: temperature
+
+R = PV/nT
+
+- F :: force 
+- A :: area
+- L :: length
+
+R = (F/A * V)/nT
+R = (F/L^2 * L^3)/nT
+R = FL/nT
+
+- W = Work (F * L)
+
+R = W/nT
+
+- kb :: energy/temperature (Boltzmann)
+- Na :: particles/mol constant (Avogadro)
+
+kb = R/Na
+
+**** fundamental units
+| Planck Unit | Symbol | Relation to other constants                             |
+|-------------+--------+---------------------------------------------------------|
+| Length      | L      | =(sqrt (/ (* hbar G) (expt c 3)))=                      |
+| Time        | T      | =(sqrt (/ (* hbar G) (expt c 5)))=                      |
+| Mass        | M      | =(sqrt (/ (* hbar c) G))=                               |
+| Charge      | Q      | =(sqrt (* 4 pi epsilon-sub-zero hbar c))=               |
+| Temperature | Θ      | =(sqrt (/ (* hbar (expt c 5)) (* G (expt k-sub-b 2))))= |
+
 
 Traditionally:
 
@@ -595,7 +766,7 @@ Traditionally:
 - c :: speed of light in a vaccum
 - ke :: electric force constant (Coulomb's constant)
 - kb :: energy/temperature constant (Boltzmann's constant)
-- ℏ :: energy/angular frequency constant ("h-bar" or reduced Planck
+- ℏ :: angular frequency/energy constant ("h-bar" or reduced Planck
        constant)
 
 Funny note about h-bar and h
@@ -606,7 +777,46 @@ h-bar relates energy to angular frequency (radians vs hertz)
 h-bar is h/2pi. If hbar = 1 then h = 2pi. if 2pi = 1 then h = hbar. I
 have no idea what this implies, if anything.
 
-***** TODO integrate when ready
+**** Normalized constants
+
+| Normalized Constants       | Symbol | Value | Units                       |
+|----------------------------+--------+-------+-----------------------------|
+| speed of light in a vacuum | c      |     1 | =(/ L T)=                   |
+| gravitation                | G      |     1 | =(/ (* L L L) (* M T T))=   |
+| angular frequency/energy   | ℏ      |     1 | =(/ (* M L L) T)=           |
+| electric force             | ke     |     1 | =(/ (* M L L) (* Q Q T T))= |
+| energy/temperature         | kb     |     1 | =(/ (* M L L) (* Θ T T))=   |
+
+**** Derived
+
+| name                | dimension                 | expression                         |
+|---------------------+---------------------------+------------------------------------|
+| frequency (angular) | =(/ 1 T)=                 |                                    |
+| area                | =(* L L)=                 |                                    |
+| volume              | =(* L L L)=               |                                    |
+| density (mass)      | =(/ M (* L L L))=         |                                    |
+| density (energy)    | =(/ M (* L T T))=         |                                    |
+| pressure            | =(/ M (* L T T))=         |                                    |
+| momentum            | =(/ (* M L)          T)=  | =(/ (* hbar G) (expt c 3))=        |
+| force               | =(/ (* M L)   (*   T T))= | =(/ (expt c 4) G)=                 |
+| energy              | =(/ (* M L L) (*   T T))= | =(sqrt (/ (* hbar (expt c 5)) G))= |
+| power               | =(/ (* M L L) (* T T T))= |                                    |
+| intensity           | =(/ M         (* T T T))= |                                    |
+|---------------------+---------------------------+------------------------------------|
+| current             | =(/ Q T)=                 |                                    |
+| voltage             | =(/ (* M L L) (* Q T T))= |                                    |
+| impedance           | =(/ (* M L L) (* Q Q T))= |                                    |
+
+
+**** Other constants
+| Other Constants                       | Symbol |      Value | Units |
+|---------------------------------------+--------+------------+-------|
+| electrical permittivity of free space | ε₀     |            |       |
+| ratio of circumference to diameter    | π      | 3.14159... |       |
+| elementary charge                     | e      |            |       |
+
+
+**** TODO integrate when ready
 
 from http://en.wikipedia.org/wiki/Planck_units#Simplification_of_physical_equations
 
