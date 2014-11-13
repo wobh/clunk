@@ -555,13 +555,31 @@ every quarter.
 ** Special Relativity
    - http://en.wikipedia.org/wiki/Special_relativity
 
+*** symbols
+
+| symbol | symbol-name | language | case  | use               | attribution |
+|--------+-------------+----------+-------+-------------------+-------------|
+| γ      | gamma       | greek    | small | relativity        | Lorentz     |
+| v      | vee         | latin    | small | relative velocity |             |
+
+*** "One does not simply add two velocities."
+
 #+BEGIN_SRC lisp
-  (defun gamma (velocity)
+  (defun relative (velocity)
     (/ 1 
        (sqrt
-        (- 1 (/ (expt velocity 2)
-                (expt +c+ 2))))))
+        (- 1 (/ (* velocity velocity)
+                (* +c+ +c+))))))
 #+END_SRC
+
+#+BEGIN_SRC lisp
+  (defun contraction (distance velocity)
+    (* distance (relative velocity)))
+  
+  (defun dilation (duration velocity)
+    (/ duration (relative velocity)))
+#+END_SRC
+
 
 ** Basis
    - http://en.wikipedia.org/wiki/Basis_(linear_algebra)
@@ -590,46 +608,48 @@ every quarter.
    - http://en.wikipedia.org/wiki/Natural_units
    - http://en.wikipedia.org/wiki/Planck_units
    - http://www.tauday.com/tau-manifesto
-
-*** ideals objects
+   - http://www.harremoes.dk/Peter/Undervis/Turnpage/Turnpage1.html
+   - http://www.fine-structure-constant.org/page4.html
+*** ideal objects
 - black body :: absorbs all electromagnetic radiation. The spectrum of
                 radiation emitted is proportional to it's temperature.
 - ideal gas ::
 - free space (vacuum) ::
-*** greek letters
+*** symbols
 
-| name    | small | large | use                                           |
-|---------+-------+-------+-----------------------------------------------|
-| pi      | π     |       | ratio of a circle's circumference to diameter |
-| omega   | ω     |       | angular frequency (radians/time)              |
-| nu      | ν     |       | linear frequency (length/time)                |
-| lambda  | λ     |       | wavelength                                    |
-| rho     | ρ     |       | momentum (mass * velocity)                    |
-| epsilon | ε     |       | electric permittivity                         |
-| epsilon | Ε     |       | energy                                        |
-| theta   |       | Θ     | temperature                                   |
-| mu      | μ     |       | magnetic permeability                         |
-| alpha   | α     |       | fine structure constant                       |
-| phi     | φ     |       | phase constant of wave                        |
-| psi     | ψ     |       | wave function                                 |
-| alpha   |       | Α     | amplitude                                     |
-| tau     |       | Τ     | period or time                                |
-| tau     | τ     |       | ratio of a circle's circumference to radius   |
-| kappa   | κ     |       | wave number circular                          |
-| sigma   | σ     |       | wave number linear                            |
-
-*** roman letters
-
-| small | large | use                         |
-|-------+-------+-----------------------------|
-| c     |       | speed of light in a vaccuum |
-|       | G     | gravitational constant      |
-| e     |       | elementary charge constant  |
-| q     |       | alternate name for e        |
-|       | E     | energy                      |
-|       | T     | time                        |
-|       | S     | entropy                     |
-|       |       |                             |
+| lang  | name      | symbol | case  | use                                          | attribution |
+|-------+-----------+--------+-------+----------------------------------------------+-------------|
+| greek | pi        | π      | small | ratio of circumference to diameter           |             |
+| greek | omega     | ω      | small | angular frequency (radians/time)             |             |
+| greek | nu        | ν      | small | linear frequency (length/time)               |             |
+| greek | lambda    | λ      | small | wavelength                                   |             |
+| greek | rho       | ρ      | small | momentum (mass * velocity)                   |             |
+| greek | epsilon   | ε      | small | electric permittivity                        |             |
+| greek | mu        | μ      | small | magnetic permeability                        |             |
+| greek | alpha     | α      | small | fine structure constant                      |             |
+| greek | phi       | φ      | small | phase constant of wave                       |             |
+| greek | psi       | ψ      | small | wave function                                |             |
+| greek | tau       | τ      | small | ratio of circumference to radius             |             |
+| greek | kappa     | κ      | small | wave number circular                         |             |
+| greek | sigma     | σ      | small | wave number linear                           |             |
+| greek | alpha     | Α      | large | amplitude                                    |             |
+| greek | epsilon   | Ε      | large | energy                                       |             |
+| greek | theta     | Θ      | large | temperature                                  |             |
+| greek | tau       | Τ      | large | period or time                               |             |
+| greek | theta     | θ      | small | angle                                        |             |
+|-------+-----------+--------+-------+----------------------------------------------+-------------|
+| latin | cee       | c      | small | speed of light in a vaccuum                  | Einstein    |
+| latin | vee       | v      | small | velocity                                     |             |
+| latin | tee       | t      | small | time                                         |             |
+| latin | tee       | T      | large | time                                         |             |
+| latin | ee        | E      | large | energy                                       |             |
+| latin | ee        | e      | small | elementary charge constant                   |             |
+| latin | que       | q      | small | alternate name for e                         |             |
+| latin | gee       | G      | large | gravitational constant                       | Newton      |
+| latin | ess       | S      | large | entropy                                      |             |
+|-------+-----------+--------+-------+----------------------------------------------+-------------|
+| latin | aitch     | ℎ      | small | energy to electromagnetic frequency constant | Planck      |
+| latin | aitch-bar | ℏ      | small | energy to angular EMF constant ℎ/2π          | Planck      |
 
 *** waves
 
@@ -650,18 +670,17 @@ T =  1/ν
 λ = 2π/κ
 κ = 2π/λ
 
-
 *** Planck units
 
 **** Plank constants
 
-- E :: energy of a charged particle in a black-body
+- Ε :: energy of a charged particle in a black-body
 - ν :: frequency of electromagnetic radiation emitted by particle
 - ℎ :: the proportion of ν/E
 
-E = νℎ
-ν = E/ℎ
-ℎ = E/ν
+Ε = νℎ
+ν = Ε/ℎ
+ℎ = Ε/ν
 
 
 - c :: speed of light in a vacuum
@@ -673,7 +692,7 @@ c = νλ
 
 Thus:
 
-E = νℎ/λ
+Ε = νℎ/λ
 
 - ρ :: linear momentum
 - λ :: quantum wavelength (de Broglie)
@@ -685,21 +704,28 @@ E = νℎ/λ
 
 When:
 
-- E :: energy
+- Ε :: energy
 - ω :: angular frequency (2πν) (radians/T)
 - ℏ :: ℎ/2π
 
-E = ωℏ
+Ε = ωℏ
 
 - 
 
-| symbol | constant      |
-|--------+---------------|
-| ℎ      | ν/E or ρ/λ    |
-| ℏ      | ω/E or ρ/2πλ  |
-| ke     | 1/(4πε₀)      |
-| ε₀     | 1/(μ₀c²)      |
-| μ₀     |               |
+| symbol | constant     | use                      | attribution | value                                    |
+|--------+--------------+--------------------------+-------------+------------------------------------------|
+| ℎ      | ν/Ε or ρ/λ   | energy/frequency ratio   | Planck      | 6.626 069 57 x 10^-34 J s                |
+| ℏ      | ω/Ε or ρ/2πλ | energy/angular-emf ratio | Planck      | 1.054 571 726 x 10-^34 J s               |
+| ke     | 1/(4πε₀)     | electrical force         | Coulomb     | 8.9875517873681764×10^9 kg m^3 s^−2 C^−2 |
+| ε₀     | 1/(μ₀c²)     | electrical permittivity  |             | 8.854 187 817... x 10^-12 F m^-1         |
+| μ₀     | 4π × 10^-7   | magnetic permeability    |             | 12.566 370 614... x 10^-7 N A^-2         |
+| e      |              | elementary charge        |             | 1.602 176 565 x 10^-19 C                 |
+| α      |              | fine structure constant  |             | 7.297 352 5698 x 10-3                    |
+| π      |              | circumference/diameter   | Archimedes  | 3.14159265358979323846264338327950       |
+| τ      |              | circumference/radius     |             | 6.28318530717958647692528676655900       |
+|--------+--------------+--------------------------+-------------+------------------------------------------|
+| ρ      |              | momentum                 |             |                                          |
+| λ      |              | quantum wavelength       | de Broglie  |                                          |
 
 - μ₀ :: magnetic permeability in vacuum
 - ε₀ :: electric permittivity in vaccum
@@ -717,6 +743,13 @@ c₀ = 1/sqrt(μ₀ε₀)
 ε₀ = 1/(4π * ke)
 e² = 2ℎα/μ₀c = 2ℎαε₀c
 
+where ke or ε₀ = 1
+
+α = e²/ℏc
+
+where ε0 = c = ħ = 1
+
+α = e²/4π
 
 - F :: electrical force
 - ke :: electric force constant (Coulomb)
@@ -745,22 +778,90 @@ R = FL/nT
 
 R = W/nT
 
-- kb :: energy/temperature (Boltzmann)
-- Na :: particles/mol constant (Avogadro)
+| use                       | SI value                      | sym | attribution      |
+|---------------------------+-------------------------------+-----+------------------|
+| energy/temperature        | 1.380 6488 x 10^-23 J K^-1    | kb  | Boltzmann        |
+| intensity/temperature     | 5.670 373 x 10^-8 W m-^2 K^-4 | σ   | Stefan-Boltzmann |
+| particles/mol             | 6.022 141 29 x 10^23 mol^-1   | Na  | Avogadro         |
+| molar volume of ideal gas | 22.710 953 x 10^-3 m^3 mol^-1 | Vm  |                  |
+| molar gas constant        | 8.314 4621 J mol^-1 K^-1      | R   |                  |
+
+note: entropy(S) has the same dimensions as the Boltzman constant: energy/temperature
+
+- kb :: energy/temperature (Boltzmann), 1.380 6488 x 10^-23 J K^-1
+- Na :: particles/mol constant (Avogadro), 6.022 141 29 x 10^23 mol^-1
 
 kb = R/Na
 
 **** fundamental units
-| Planck Unit | Symbol | Relation to other constants                             |
+
+#+BEGIN_SRC lisp
+  (=
+   (expt +Q+ 2)
+   (* 4 +pi+ +electical-permittivity+ +angular-frequency-energy+ +lightspeed+)
+   (/ +elementary-charge+ (sqrt +fine-structure-constant+))
+   )
+#+END_SRC
+
+
+| Planck Unit | Symbol | Relation to other constants                             | 
 |-------------+--------+---------------------------------------------------------|
+| Mass        | M      | =(sqrt (/ (* hbar c) G))=                               |
 | Length      | L      | =(sqrt (/ (* hbar G) (expt c 3)))=                      |
 | Time        | T      | =(sqrt (/ (* hbar G) (expt c 5)))=                      |
-| Mass        | M      | =(sqrt (/ (* hbar c) G))=                               |
-| Charge      | Q      | =(sqrt (* 4 pi epsilon-sub-zero hbar c))=               |
+| Charge      | Q      | =(sqrt (* 4 pi epsilon-sub-zero hbar c))=               | 
 | Temperature | Θ      | =(sqrt (/ (* hbar (expt c 5)) (* G (expt k-sub-b 2))))= |
 
+In terms of commonplace human scale units, the values of the Planck
+units are basically off the scales--well outside the narrow range of
+things we're typically comfortable calling "length" or "mass" or
+"time". Except for temperature--a bonkers large number, in /Kelvin/--
+the others are literally define the lowest limits of smallness,
+substance, and synchrony. An electron is vast compared to the planck
+length.
 
-Traditionally:
+***** Charge
+
+| Factor [Coulomb] | SI prefix   | Value          | Item                                                                                                             |
+|------------------+-------------+----------------+------------------------------------------------------------------------------------------------------------------|
+| 10^−21           | zepto- (zC) |                |                                                                                                                  |
+| 10^−20           |             | −5.34×10^−20 C | (−1/3 e)—charge of down, strange and bottom quarks                                                               |
+| 10^−19           |             | 1.068×10^−19 C | (2/3 e)—charge of up, charm and top quarks                                                                       |
+| 10^-19           |             | 1.602×10^−19 C | the elementary charge e, i.e. the negative charge on a single electron or the positive charge on a single proton |
+| 10^−18           | atto- (aC)  | 1.9×10^−18 C   | planck charge                                                                                                    |
+| 10^−17           |             | 1.473×10−17 C  | (92 e) - positive charge on a uranium nucleus                                                                    |
+| 10^−15           | femto- (fC) | 1×10−15 C      | charge on a typical dust particle                                                                                |
+| 10^−12           | pico- (pC)  | 1×10−12 C      | charge in typical microwave frequency capacitors                                                                 |
+| 10^−9            | nano- (nC)  | 1×10^−9 C      | charge in typical radio frequency capacitors                                                                     |
+| 10^−6            | micro- (µC) | 1×10^−6 C      | charge in typical audio frequency capacitors                                                                     |
+| 10^-6            |             | ~1×10−6 C      | static electricity from rubbing materials together                                                               |
+| 10^−3            | milli- (mC) | 1×10−3 C       | Charge in typical power supply capacitors                                                                        |
+| 10^0             | C           | 1×100 C        | two negative point charges of 1 C, placed one meter apart, would experience a repulsive force of 9×109 N         |
+| 10^1             | deca- (daC) | 2.6×101 C      | charge in a typical thundercloud (15 - 350 C)                                                                    |
+| 10^3             | kilo- (kC)  | 5×103 C        | typical alkaline AA battery is about 5000 C ≈ 1.4 A⋅h                                                            |
+| 10^4             |             | 9.64×10^4 C    | charge on one mole of electrons (Faraday constant)                                                               |
+| 10^5             |             | 2.16×10^5 C    | car battery charge                                                                                               |
+| 10^6             | mega- (MC)  | 1071.07×10^7 C | charge needed to produce 1 kg of aluminum from bauxite in an electrolytic cell                                   |
+| 10^8             |             | 5.9×10^8 C     | charge in world's largest battery bank (36 MWh), assuming 220VAC output                                          |
+
+***** Mass
+
+
+Mass does not have a lower limit.
+
+| Factor | Value | Item |
+|--------+-------+------|
+|        |       |      |
+
+**** Normalized constants
+
+| Normalized Constants       | Symbol | Value | Units                       | SI value                                 |
+|----------------------------+--------+-------+-----------------------------+------------------------------------------|
+| speed of light in a vacuum | c      |     1 | =(/ L T)=                   | 2.99792458  × 10^8 m s^−1                |
+| angular frequency/energy   | ℏ      |     1 | =(/ (* M L L) T)=           | 1.054571726 x 10^-34 J s                 |
+| gravitation                | G      |     1 | =(/ (* L L L) (* M T T))=   | 6.67384     × 10^−11 m^3 kg^−1 s^−2      |
+| energy/temperature         | kb     |     1 | =(/ (* M L L) (* Θ T T))=   | 1.3806488   x 10^-23 J K^-1              |
+| electric force             | ke     |     1 | =(/ (* M L L) (* Q Q T T))= | 8.9875517873681764×10^9 kg m^3 s^−2 C^−2 |
 
 - G :: gravitational constant
 - c :: speed of light in a vaccum
@@ -777,19 +878,9 @@ h-bar relates energy to angular frequency (radians vs hertz)
 h-bar is h/2pi. If hbar = 1 then h = 2pi. if 2pi = 1 then h = hbar. I
 have no idea what this implies, if anything.
 
-**** Normalized constants
-
-| Normalized Constants       | Symbol | Value | Units                       |
-|----------------------------+--------+-------+-----------------------------|
-| speed of light in a vacuum | c      |     1 | =(/ L T)=                   |
-| gravitation                | G      |     1 | =(/ (* L L L) (* M T T))=   |
-| angular frequency/energy   | ℏ      |     1 | =(/ (* M L L) T)=           |
-| electric force             | ke     |     1 | =(/ (* M L L) (* Q Q T T))= |
-| energy/temperature         | kb     |     1 | =(/ (* M L L) (* Θ T T))=   |
-
 **** Derived
 
-| name                | dimension                 | expression                         |
+| name                | units                     | expression                         |
 |---------------------+---------------------------+------------------------------------|
 | frequency (angular) | =(/ 1 T)=                 |                                    |
 | area                | =(* L L)=                 |                                    |
@@ -807,13 +898,29 @@ have no idea what this implies, if anything.
 | voltage             | =(/ (* M L L) (* Q T T))= |                                    |
 | impedance           | =(/ (* M L L) (* Q Q T))= |                                    |
 
+Now that I look at it, reducing the values of all these things to 1
+seems ... dubious. However, I find the dimensional composition really
+interesting.  Energy density and pressure have the same unit
+dimensions. Consider the situation with the L dimension: we make sense
+of that by understanding each L as orthagonal. We understand the
+multiple T's in force as accelleration. 
 
+Found a good explaination of concepts here:
+
+http://hyperphysics.phy-astr.gsu.edu/hbase/units.html#uni3
+
+| dimension   | PL symbol | SI unit  | SI symbol | SI value                  |
+|-------------+-----------+----------+-----------+---------------------------|
+| mass        | M         | kilogram | kg        | 2.176 51      x 10^-8  kg |
+| length      | L         | meter    | m         | 1.616 199     × 10^−35 m  |
+| time        | T         | second   | s         | 5.391 06      x 10^-44 s  |
+| charge      | Q         | coulomb  | C         | 1.875 545 956 × 10^−18 C  |
+| temperature | Θ         | kelvin   | K         | 1.416 833     x 10^32  K  |
+
+
+http://physics.nist.gov/cgi-bin/cuu/Category?view=html&Universal.x=84&Universal.y=12
 **** Other constants
-| Other Constants                       | Symbol |      Value | Units |
-|---------------------------------------+--------+------------+-------|
-| electrical permittivity of free space | ε₀     |            |       |
-| ratio of circumference to diameter    | π      | 3.14159... |       |
-| elementary charge                     | e      |            |       |
+
 
 
 **** TODO integrate when ready
@@ -969,6 +1076,21 @@ Black hole radius (Schwartzchild, 1916)
   - position and momentum
   - wave and particle
   - 
+** Conversion
+
+| length unit | meters          | scale | definition                         |
+|-------------+-----------------+-------+------------------------------------|
+| lightyear   | 9.46053 × 10^15 |    15 | distance light travels in a year   |
+| AU          | 1.49598 × 10^11 |    11 | distance from the sun to the earth |
+| lightsecond | 2.99792 × 10^8  |     8 | distance light travels in a second |
+| kilometer   | 1.0 × 10^3      |     3 |                                    |
+| meter       | 1.0 × 10^0      |     0 |                                    |
+| inch        | 2.5 × 10^-2     |    -2 |                                    |
+| millimeter  | 1.0 × 10^-3     |    -3 |                                    |
+| micrometer  | 1.0 × 10^-6     |    -6 |                                    |
+| nanometer   |                 |       |                                    |
+|             |                 |       |                                    |
+
 ** COMMENT Naming things is hard
 *** vocabulary
 
@@ -1041,3 +1163,5 @@ Eh, that's just being cute.
 * References
 - http://hyperphysics.phy-astr.gsu.edu/hbase/hph.html
   + http://hyperphysics.phy-astr.gsu.edu/hbase/relativ/relcon.html#relcon
+
+- http://www.harremoes.dk/Peter/Undervis/Turnpage/Turnpage1.html
