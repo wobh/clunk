@@ -652,65 +652,72 @@ every quarter.
 | latin | aitch-bar | ℏ      | small | energy to angular EMF constant ℎ/2π          | Planck      |
 
 *** waves
+- When:
+  - T :: period (time)
+  - Α :: amplitude (distance between the equilibrium and the height of disturbance)
+  - φ :: phase constant
+  - λ :: wavelength (distance between to crests or troughs)
+  - Also:
+    - ν :: frequency linear
+    - σ :: wavenumber linear
+    - Then:
+      + ν =  1/T
+      + σ =  1/λ
+      + T =  1/ν
+  - Also:
+    - ω :: frequency angular
+    - κ :: wavenumber angular
+    - Then:
+      + ω = 2π/T = 2πν
+      + κ = 2π/λ
+      + λ = 2π/κ
 
-- T :: period (time)
-- Α :: amplitude (distance between the equilibrium and the height of disturbance)
-- λ :: wavelength (distance between to crests or troughs)
-- φ :: phase constant
-- ν :: frequency linear
-- ω :: frequency circular (angular)
-- σ :: wavenumber linear
-- κ :: wavenumber circular
+**** wave equation
 
-T =  1/ν
-ν =  1/T
-σ =  1/λ
+- c :: wave propagation constant
+- u :: function taking dimensional values and time value
+- ∂ :: partial differential
+- ∇² :: Laplacian operator (spacial) 
 
-ω = 2π/T = 2πν
-λ = 2π/κ
-κ = 2π/λ
+∂²u/∂t² = c²∇²u
 
 *** Planck units
 
 **** Plank constants
 
-- Ε :: energy of a charged particle in a black-body
-- ν :: frequency of electromagnetic radiation emitted by particle
-- ℎ :: the proportion of ν/E
+- When:
+  - Ε :: energy of a charged particle in a black-body
+  - ν :: frequency of electromagnetic radiation emitted by particle
+  - ℎ :: the proportion of ν/E
+  - Then:
+    + Ε = νℎ
+    + ν = Ε/ℎ
+    + ℎ = Ε/ν
+  - Also:
+    - c :: speed of light in a vacuum
+    - ν :: frequency of light
+    - λ :: wavelength of light
+    - Then:
+      + c = νλ
+  - Thus:
+    + Ε = νℎ/λ
 
-Ε = νℎ
-ν = Ε/ℎ
-ℎ = Ε/ν
+- When:
+  - ρ :: linear momentum
+  - λ :: quantum wavelength (de Broglie)
+  - ℎ :: proportion
+  - Then
+    + λ = ℎ/ρ
+    + ℎ = ρλ
+    + ρ = λ/ℎ
 
+- When:
+  - Ε :: energy
+  - ω :: angular frequency (2πν) (radians/T)
+  - ℏ :: ℎ/2π
+  - Then:
+    + Ε = ωℏ
 
-- c :: speed of light in a vacuum
-- ν :: frequency of light
-- λ :: wavelength
-
-c = νλ
-
-
-Thus:
-
-Ε = νℎ/λ
-
-- ρ :: linear momentum
-- λ :: quantum wavelength (de Broglie)
-- ℎ :: proportion
-
-λ = ℎ/ρ
-ℎ = ρλ
-ρ = λ/ℎ
-
-When:
-
-- Ε :: energy
-- ω :: angular frequency (2πν) (radians/T)
-- ℏ :: ℎ/2π
-
-Ε = ωℏ
-
-- 
 
 | symbol | constant     | use                      | attribution | value                                    |
 |--------+--------------+--------------------------+-------------+------------------------------------------|
@@ -1078,18 +1085,20 @@ Black hole radius (Schwartzchild, 1916)
   - 
 ** Conversion
 
-| length unit | meters          | scale | definition                         |
-|-------------+-----------------+-------+------------------------------------|
-| lightyear   | 9.46053 × 10^15 |    15 | distance light travels in a year   |
-| AU          | 1.49598 × 10^11 |    11 | distance from the sun to the earth |
-| lightsecond | 2.99792 × 10^8  |     8 | distance light travels in a second |
-| kilometer   | 1.0 × 10^3      |     3 |                                    |
-| meter       | 1.0 × 10^0      |     0 |                                    |
-| inch        | 2.5 × 10^-2     |    -2 |                                    |
-| millimeter  | 1.0 × 10^-3     |    -3 |                                    |
-| micrometer  | 1.0 × 10^-6     |    -6 |                                    |
-| nanometer   |                 |       |                                    |
-|             |                 |       |                                    |
+| length unit |     meters | scale | definition                         |
+|-------------+------------+-------+------------------------------------|
+| lightyear   | 9.46053e15 |    15 | distance light travels in a year   |
+| AU          | 1.49598e11 |    11 | distance from the sun to the earth |
+| lightsecond |  2.99792e8 |     8 | distance light travels in a second |
+| mile        |  1.60934e3 |     3 |                                    |
+| kilometer   |      1.0e3 |     3 |                                    |
+| meter       |      1.0e0 |     0 |                                    |
+| foot        |     0.3e-1 |    -1 |                                    |
+| inch        |     2.5e-2 |    -2 |                                    |
+| millimeter  |     1.0e-3 |    -3 |                                    |
+| micrometer  |     1.0e-6 |    -6 |                                    |
+| nanometer   |            |       |                                    |
+|             |            |       |                                    |
 
 ** COMMENT Naming things is hard
 *** vocabulary
