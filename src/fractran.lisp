@@ -59,7 +59,7 @@ pp 4-26"))
 (in-package #:fractran)
 
 (defun defractor (input progf)
-  "Returns a lambda which outputs the next step in FRACTAN computation."
+  "Returns a lambda which outputs the next step in FRACTRAN computation."
   ;; (check-type input (integer (0)))
   ;; (assert (every (lambda (n) (typep n '(rational (0)))) progf))
   (lambda ()
@@ -85,13 +85,15 @@ pp 4-26")
   (list 365/46 29/161 79/575 679/451 3159/413 83/407 473/371 638/355 434/335 89/235 17/209 79/122
 	31/183 41/115 517/89 111/83 305/79 23/73 73/71 61/67 37/61 19/59 89/57 41/53 833/47 53/43
 	86/41 13/38 23/37 67/31 71/29 83/19 475/17 59/13 41/291 1/7 1/11 1/1024 1/97 89/1)
-  "``When PIGAME is started at 2^n, the next power of 2 to appear is 2^pi(n), where for
+  "``When PIGAME is started at 2^n, the next power of 2 to appear is
+2^pi(n), where for
 
 n = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ...
 
 pi(n) = 3 1 4 1 5 9 2 6 5 3 5 8 9 7 9 3 2 3 8 4 6 ...
 
-For an arbitrary natural number n, pi(n) is the nth digit after the point in the decimal expansion of of the number pi.
+For an arbitrary natural number n, pi(n) is the nth digit after the
+point in the decimal expansion of of the number pi.''
 
 J.H. Conway, _FRACTRAN: A Simple Universal Programming Language for
 Arithmetic_, _Open Problems In Communication And Computation_, 1987,
@@ -100,7 +102,9 @@ pp 4-26")
 (defconstant +conway-polygame+
   (list 583/559 629/551 437/527 82/517 615/329 371/129 1/115 53/86 43/53 23/47 341/46
 	41/43 47/41 29/37 37/31 37/31 299/29 47/23 161/15 527/19 159/7 1/17 1/13 1/3)
-  "Define f_c(n) = m if POLYGAME when started at c^2^2^n, stops at 2^2^m, and otherwise leave f_c(n) undefined. Then every computable function appears among f_0, f_1, f_2,... .
+  "``Define f_c(n) = m if POLYGAME when started at c^2^2^n, stops at 2^2^m,
+and otherwise leave f_c(n) undefined. Then every computable function
+appears among f_0, f_1, f_2,... .''
 
 J.H. Conway, _FRACTRAN: A Simple Universal Programming Language for
 Arithmetic_, _Open Problems In Communication And Computation_, 1987,
