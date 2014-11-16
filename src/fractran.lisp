@@ -41,18 +41,20 @@ pp 4-26"))
   (list 15 825 725 1925 2275 425 390 330 290 770 910 
 	170 156 132 116 308 364 68 4 30 225 12375 10875 
 	28875 25375 67375 79625 14875 13650 2550 2340 
-	1980 1740 4620 4060 10780 12740 2380 2184 408 152 1)
+	1980 1740 4620 4060 10780 12740 2380 2184 408 152)
   "http://oeis.org/A007542")
 
 (defun conway-primegame-test ()
   (let ((pg (defractor 2 +conway-primegame+)))
     (loop
-       for i from 0 below (length +conway-primegame-specs+)
+       for index from 0 below (length +conway-primegame-specs+)
        do
-	 (assert (= (nth i +conway-primegame-specs+) (funcall pg))
-		 (i) "" )
-       finally
-	 (return t))))
+	 (let ((result (funcall pg))
+	       (expect (nth index +conway-primegame-specs+)))
+	   (assert (= result expect)
+		   (index result expect)
+		   "PRIMEGAME: Mismatch at index ~A. Output, ~A. Expected ~A"
+		   index result expect)))))
 
 (in-package #:fractran)
 
