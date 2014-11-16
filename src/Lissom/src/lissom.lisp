@@ -92,7 +92,7 @@ directory hierarchy looking for items?  If so, to what depth?
   (list Nil "Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"))
 
 (defun month2num (month-str)
-  (format Nil "~2,0D" (position month-str +months+ :test equal)))
+  (format Nil "~2,0D" (position month-str +months+ :test equalp)))
 
 (defun num2month (num)
   (elt +months+ num))
