@@ -1,0 +1,542 @@
+#+TITLE: CDR-8 plan
+#+DATE: <2014-11-16 Sun>
+#+AUTHOR: William Clifford
+#+EMAIL: wobh@yahoo.com
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline
+#+OPTIONS: author:t c:nil creator:comment d:(not "LOGBOOK") date:t
+#+OPTIONS: e:t email:nil f:t inline:t num:t p:nil pri:nil stat:t
+#+OPTIONS: tags:t tasks:t tex:t timestamp:t toc:t todo:t |:t
+#+CREATOR: Emacs 24.4.1 (Org mode 8.2.10)
+#+DESCRIPTION:
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+
+* Introduction
+
+Most of what follows is quoted from
+http://cdr.eurolisp.org/document/8/cleqcmp.html for the purpose of
+using in this plan document. Things like TODOs keywords, checkmark
+lists, tests and draft code and other planning jots and tittles are,
+obviously mine.
+
+
+
+* Equality and Comparison Dictionary
+
+** Standard Generic Function ~EQUALS~
+
+*** Syntax:
+
+~EQUALS~ a b &rest keys &key recursive &allow-other-keys → result
+
+Note: Maybe it would make sense to supply a \:key parameter
+(defaulting to identity) as well.
+
+*** Known Method Signatures: [0/7]
+
+- [ ] ~EQUALS~ (/a/ ~T~) (/b/ ~T~) ~&rest~ /keys/ ~&key~ /recursive/ ~&allow-other-keys~
+- [ ] ~EQUALS~ (/a/ ~number~) (/b/ ~number~) ~&rest~ /keys/ ~&key~ /recursive/ ~&allow-other-keys~
+- [ ] ~EQUALS~ (a cons) (b cons) &rest keys &key recursive &allow-other-keys
+- [ ] ~EQUALS~ (a character) (b character) &rest keys &key recursive case-sensitive &allow-other-keys
+- [ ] ~EQUALS~ (a string) (b string) &rest keys &key recursive case-sensitive &allow-other-keys
+- [ ] ~EQUALS~ (a array) (b array) &rest keys &key recursive &allow-other-keys
+- [ ] ~EQUALS~ (a hash-table) (b hash-table) &rest keys &key recursive (by-key t) (by-value t) (check-properties t) &allow-other-keys
+
+*** Arguments and Values:
+
+- a b :: Common Lisp objects.
+- recursive :: a generalized boolean; default is NIL.
+- result :: a boolean.
+- keys :: a list (as per the usual behavior).
+- by-key :: a generalized boolean; default is T.
+- by-values :: a generalized boolean; default is T.
+- check-properties :: a generalized boolean; default is NIL.
+- case-sensitive :: a generalized boolean; default is T.
+
+*** Description:
+
+The ~EQUALS~ generic functions defines methods to test for "equality" of
+two objects a and b. When two objects a and b are ~EQUALS~ under an
+appropriate and context-dependent notion of "equality", then the
+function returns T as result; otherwise ~EQUALS~ returns NIL as result.
+
+If the argument recursive is T, then ~EQUALS~ may recurse down the
+"structure" of a and b. The description of each known method contains
+the relevant information about its recursive dependent behavior.
+
+~EQUALS~ provides some default behavior, but it is intended mostly as a
+hook for users. As such, it is allowed to add keyword arguments to
+user-defined ~EQUALS~ methods, as the &key and &allow-other-keys
+lambda-list markers imply.
+
+**** Known Method Descriptions:
+
+The following are the descriptions of ~EQUALS~ known methods; unless
+explicitely mentioned recursive and keys are to be considered as
+ignoreed.
+
+~EQUALS~ (a T) (a T) &rest keys &key recursive &allow-other-keys
+The default behavior for two objects a and b of type/class T is to
+fall back on the function equalp.
+
+~EQUALS~ (a number) (a number) &rest keys &key recursive
+&allow-other-keys
+The default behavior for two objects a and b of type/class number is
+to bypass equalp and to fall back directly on the function =
+Note: it may be worthwhile to add a :epsilon keyword describing the
+tolerance of the equality test and other keys describing the "nearing"
+direction (Subnote: must check the correct numerics terminology.)
+
+~EQUALS~ (a cons) (a cons) &rest keys &key recursive &allow-other-keys
+The default behavior for two objects a and b of type/class cons is to
+call the function tree-equal with ~EQUALS~ as \:test.
+
+~EQUALS~ (a character) (a character) &rest keys &key recursive
+(case-sensitive T) &allow-other-keys
+The behavior for two character objects depends on the value of the
+keyword parameter recursive case-sensitive: if non-NIL (the default)
+then the test uses char=, otherwise char-equal.
+
+~EQUALS~ (a string) (a string) &rest keys &key recursive (case-sensitive
+T) &allow-other-keys
+The behavior for two string objects depends on the value of the
+keyword parameter case-sensitive: if non-NIL (the default) then the
+test uses string=, otherwise string-equal.
+
+~EQUALS~ (a array) (a array) &rest keys &key recursive &allow-other-keys
+The default behavior for two objects a and b of type/class array is to
+call ~EQUALS~ element-wise, as per equalp. The recursive argument is
+passed unmodified in each element-wise call to ~EQUALS~.
+
+Example: the following may be an implementation of ~EQUALS~ on arrays
+(modulo "active elements", fill-pointers and other details).
+
+#+BEGIN_SRC lisp
+(defmethod EQUALS ((a array) (b array)
+                   &rest keys
+                   &key recursive &allow-other-keys)
+   (when (equal (array-dimensions a)
+                (array-dimensions b))
+       (loop for i from 0 below (array-total-size a)
+             always (apply #'EQUALS
+                           (row-major-aref a i)
+                           (row-major-aref b i)
+                           keys))))
+#+END_SRC
+      
+~EQUALS~ (a structure-object) (a structure-object) &rest keys &key
+recursive &allow-other-keys
+The ~EQUALS~ default behaviour for two structure-objects is to fall back
+on equalp
+
+Note: an alternative choice would be to fall back on eq.
+
+In this case a Java (or C++) programmer may find the connection more
+immediate, as this would make the behavior of ~EQUALS~ similar to the
+default java.lang.Object equals method.
+
+Another reason to fall back on eq would be to make the behavior
+between the treatment of structure-objects and standard-objects
+uniform.
+
+~EQUALS~ (a standard-object) (a standard-object) &rest keys &key
+recursive &allow-other-keys
+The ~EQUALS~ default behaviour for two standard-objects is to fall back
+on eq.
+
+~EQUALS~ (a hash-table) (a hash-table) &rest keys &key recursive (by-key
+t) (by-value t) (check-properties t) &allow-other-keys
+The ~EQUALS~ default behaviour for two hash-table object is the
+following. If a and b are eq, the result is T. Otherwise, first it is
+checked that the two hash-tables have the same number of entries, then
+three tests are performed "in parallel".
+
+if by-key is non-NIL then the keys of the a and b are compared with
+~EQUALS~ (with recursive passed as-is). The semantics of this test are
+as if the following code were executed
+(loop for k1 in (ht-keys a)
+      for k2 in (ht-keys b)
+      always (apply 'EQUALS k1 k2 keys))
+          
+If by-key is NIL, the subtest is true.
+if by-value is non-NIL then the values of the a and b are compared
+with ~EQUALS~ (with recursive passed as-is). The semantics of this test
+are as if the following code were executed
+(loop for v1 in (ht-values a)
+      for v2 in (ht-values b)
+      always (apply 'EQUALS k1 k2 keys))
+          
+If by-value is NIL, the subtest is true.
+if check-properties is non-NIL then all the standard hash-table
+properties are checked for equality using eql, =, or null as
+needed. Implementation-dependent properties are checked
+accordingly. If check-properties is NIL, the subtest is true.
+result is computed as the conjunction of the previous subtests.
+Synonyms: the name ~EQUALS~ was chosen "vox populi". The Latin name
+would be AEQUALIS, which is Latin for "equal"; of course, this may not
+be the best name for a Common Lisp function. Some other synonims may
+be the symbol == or EQUIV. In general, synonyms should be defined by
+setting their fdefinition to (symbol-function 'equals).
+
+*** Examples:
+
+#+BEGIN_EXAMPLE
+cl-prompt> (equals 42 42)
+T
+
+cl-prompt> (equals 42 'a)
+NIL
+
+cl-prompt> (equals "abc" "abc")
+T
+
+cl-prompt> (equals (make-hash-table) (make-hash-table))
+T
+
+cl-prompt> (equals "FOO" "Foo")
+NIL
+
+cl-prompt> (equals "FOO" "Foo" :case-sensitive nil)
+T
+
+cl-prompt> (defstruct foo a s d)
+FOO
+
+cl-prompt> (equals (make-foo :a 42 :d "a string")
+                   (make-foo :a 42 :d "a string"))
+NIL ; If falling back on EQUALP.  T if falling back on EQ.
+
+cl-prompt> (equals (make-foo :a 42 :d "a bar")
+                   (make-foo :a 42 :d "a baz"))
+NIL
+
+cl-prompt> (defmethod equals ((a foo) (b foo)
+                                 &key (recursive t)
+                                 &allow-other-keys)
+               (declare (ignore recursive))
+               (or (eq a b)
+                   (= (foo-a a) (foo-a b))))
+#<STANDARD METHOD equals (FOO FOO)>
+
+cl-prompt> (equals (make-foo :a 42 :d "a bar")
+                   (make-foo :a 42 :d "a baz"))
+T
+#+END_EXAMPLE
+
+
+*** Side Effects:
+
+None.
+
+*** Affected By:
+
+TBD.
+
+*** Exceptional Situations:
+
+TBD.
+
+** Standard Generic Function ~COMPARE~
+
+*** Syntax:
+
+~COMPARE~ a b &rest keys &key recursive &allow-other-keys → result
+
+*** Known Method Signatures: [0/5]
+
+- [ ] ~COMPARE~ (/a/ T) (/a/ T) &rest /keys/ &key /recursive/ &allow-other-keys
+- [ ] ~COMPARE~ (a number) (a number) &rest keys &key recursive/ &allow-other-keys
+- [ ] ~COMPARE~ (a character) (a character) &rest keys &key recursive (case-sensitive NIL) &allow-other-keys
+- [ ] ~COMPARE~ (a string) (a string) &rest keys &key recursive (case-sensitive NIL) &allow-other-keys
+- [ ] ~COMPARE~ (a symbol) (a symbol) &rest keys &key recursive &allow-other-keys
+
+*** Arguments and Values:
+
+- a b :: Common Lisp objects.
+- recursive :: a generalized boolean; default is NIL.
+- result :: a symbol of type (member < > = /=).
+- keys :: a list (as per the usual behavior).
+- case-sensitive :: a generalized boolean; default is T.
+
+*** Description:
+
+The generic function ~COMPARE~ defines methods to test the ordering of
+two objects a and b, if such order exists. The result value returned
+by ~COMPARE~ is one of the four symbols: ~<~, ~>~, ~=~, or ~/=~. The
+~COMPARE~ function returns ~/=~ as result by default; thus it can
+represent partial orders among objects. The equality tests should be
+coherent with what the generic function ~EQUALS~ does.
+
+If the argument recursive is T, then ~COMPARE~ may recurse down the
+"structure" of a and b. The description of each known method contains
+the relevant information about its recursive dependent behavior.
+
+**** Known Methods Descriptions:
+
+~COMPARE~ (a T) (a T) &rest keys &key recursive &allow-other-keys
+The default behavior for ~COMPARE~ when applied to two objects a and b
+of "generic" type/class is to return the symbol /= as result. The
+intended meaning is to signal the fact that no ordering relation is
+known among them.
+
+~COMPARE~ (a number) (a number) &rest keys &key recursive
+&allow-other-keys
+The default behavior for two objects a and b of type/class number is
+to compute result according to the standard predicates <, >, and =.
+
+~COMPARE~ (a character) (a character) &rest keys &key recursive
+(case-sensitive NIL) &allow-other-keys
+The behavior for two string objects depends on the value of the
+keyword parameter case-sensitive: if non-NIL (the default) then the
+test uses string<, string>, and string= to compute result; otherwise
+it uses string-lessp, string-greaterp, and string-equal.
+
+~COMPARE~ (a string) (a string) &rest keys &key recursive
+(case-sensitive NIL) &allow-other-keys
+The behavior for two string objects depends on the value of the
+keyword parameter case-sensitive: if non-NIL (the default) then the
+test uses string, string>, and string= to compute result; otherwise it
+uses string-lessp, string-greaterp, and string-equal.
+
+~COMPARE~ (a symbol) (a symbol) &rest keys &key recursive
+&allow-other-keys
+When called with two symbols, the method returns = if a and b are eq,
+otherwise it returns /=.
+
+Examples:
+#+BEGIN_EXAMPLE
+cl-prompt> (compare 42 0)
+>
+
+cl-prompt> (compare 42 1024)
+<
+
+cl-prompt> (compare pi pi)
+=
+
+cl-prompt> (compare pi 3.0s0)
+>
+
+cl-prompt> (compare 'this-symbol 'this-symbol)
+=
+
+cl-prompt> (compare 'this-symbol 'that-symbol)
+/=
+
+cl-prompt> (compare '(q w e r t y) '(q w e r t y))
+=
+
+cl-prompt> (compare #(q w e r t y) #(q w e r t y 42))
+/=
+
+cl-prompt> (compare "asd" "asd")
+=
+
+cl-prompt> (compare "asd" "ASD")
+>
+
+cl-prompt> (compare "asd" "ASD" t :case-sensitive nil)
+=
+
+cl-prompt> (defstruct foo a s d)
+FOO
+
+cl-prompt> (compare (make-foo :a 42) (make-foo :a 42))
+/=
+
+cl-prompt> (defmethod compare ((a foo) (b foo)
+                           &rest keys
+                           &key recursive &allow-other-keys)
+              (let ((d-r (apply #'compare (foo-d a) (foo-d b) keys))
+                    (a-r (apply #'compare (foo-a a) (foo-a b) keys))
+                   )
+                 (if (eq d-r a-r) d-r '/=)))
+#<STANDARD METHOD compare (FOO FOO)>
+
+cl-prompt> (compare (make-foo :a 0 :d "I am a FOO")
+                    (make-foo :a 42 :d "I am a foo"))
+/=
+
+cl-prompt> (compare (make-foo :a 0 :d "I am a FOO")
+    (make-foo :a 42 :d "I am a foo")
+        :case-sensitive nil)
+<
+
+cl-prompt> (compare (make-array 3 :initial-element 0)
+                    (vector 1 2 42))
+/=
+#+END_EXAMPLE
+
+* Functions LT, LTE, GT, and GTE
+
+** Syntax:
+
+- [ ] ~LT~ a b &rest keys &key recursive &allow-other-keys → result
+- [ ] ~LTE~ a b &rest keys &key recursive &allow-other-keys → result
+- [ ] ~GT~ a b &rest keys &key recursive &allow-other-keys → result
+- [ ] ~GTE~ a b &rest keys &key recursive &allow-other-keys → result
+
+*** Synonyms: 
+The full-name synonyms ~lessp~, ~not-greaterp~, ~greaterp~, and
+~not-lessp~ are provided s well. Their implementation should be based
+on setting the relevant fdefinition.
+
+** Description:
+
+The functions LT, LTE, GT, and GTE are shorthands for calls to
+~COMPARE~. Each one calls ~COMPARE~ as
+
+  (apply #'compare a b keys)
+  
+The appropriate result is returned when ~COMPARE~, on its turn,
+returns ~<~, ~>~, or ~=~. If compare returns ~/=~, then no ordering
+relation can be established, and the functions ~LT~, ~LTE~, ~GT~, and
+~GTE~ signal an error.
+
+Note: decide which error.
+
+If the keyword argument recursive is ~T~, then ~EQUALS~ may recurse
+down the "structure" of a and b. The description of each known method
+contains the relevant information about its recursive dependent
+behavior.
+
+** Examples:
+
+#+BEGIN_SRC 
+cl-prompt> (lt 42 0)
+NIL
+
+cl-prompt> (lt 42 1024)
+T
+
+cl-prompt> (gte pi pi)
+T
+
+cl-prompt> (greaterp pi 3.0s0)
+T
+
+cl-prompt> (lt "asd" "asd")
+NIL
+
+cl-prompt> (lte "asd" "ASD")
+NIL
+
+cl-prompt> (lte "asd" "ASD" :case-sensitive nil)
+T
+
+cl-prompt> (defstruct foo a s d)
+FOO
+
+cl-prompt> (defmethod compare ((a foo) (b foo)
+                           &rest keys
+                           &key recursive &allow-other-keys)
+              (let ((d-r (apply #'compare (foo-d a) (foo-d b) keys))
+                    (a-r (apply #'compare (foo-a a) (foo-a b) keys))
+                   )
+                 (if (eq d-r a-r) d-r '/=)))
+#<STANDARD METHOD compare (FOO FOO)>
+
+cl-prompt> (lte (make-foo :a 0 :d "I am a FOO")
+                (make-foo :a 42 :d "I am a foo"))
+
+Error: Uncomparable objects
+       #S(FOO :a 0 :s NIL :d "I am a FOO") and
+       #S(FOO :a 0 :s NIL :d "I am a foo")
+
+cl-prompt> (lte (make-foo :a 0 :d "I am a FOO")
+                (make-foo :a 42 :d "I am a foo")
+                :case-sensitive nil) 
+T
+
+cl-prompt> (lte (make-array 3 :initial-element 0)
+                (vector 1 2 42)) 
+
+Error: Uncomparable objects #(0 0 0) and #(1 2 42).
+#+END_SRC
+
+** Side Effects:
+
+None.
+
+** Affected By:
+
+TBD.
+
+** Exceptional Situations:
+
+An "error" is signalled when called on a pair of objects for which no
+predicate is defined (which is like what happens for undefined
+methods).
+
+* Standard Generic Function HASH-CODE
+
+** Syntax:
+
+- HASH-CODE a → result
+
+** Known Method Signatures:
+
+- HASH-CODE (a T)
+*** Arguments and Values:
+
+a -- a Common Lisp object.
+result -- a positive fixnum in the range (mod array-total-size-limit).
+Description:
+
+The HASH-CODE generic function is provided as a companion to ~EQUALS~
+for the benefit of those Common Lisp implementations that provide a
+handle on the inner working of hash tables (usually in the form of an
+extra :sxhash or :hash-function keyword argument to make-hash-table),
+or for bottom-up hash table implementations.
+
+HASH-CODE is modeled after the Java hashCode() method of
+java.lang.Object. The same description applies almost unchanged.
+
+The general contract of HASH-CODE is the following.
+
+Whenever it is invoked on the same object more than once during an a
+Common Lisp session, the HASH-CODE generic function must consistently
+return the same fixnum, provided no information used in ~EQUALS~
+comparisons on the object a is modified. This integer need not remain
+consistent from one Common Lisp session to another.
+If two objects are equal according to the ~EQUALS~ generic predicate,
+then calling the HASH-CODE generic function on each of the two objects
+must produce the same integer result.
+It is not required that if two objects are unequal according to the
+~EQUALS~ generic predicate, then calling the HASH-CODE generic function
+on each of the two objects must produce distinct integer
+results. However, the programmer should be aware that producing
+distinct integer results for unequal objects may improve the
+performance of hashtables.
+Known Method Descriptions:
+
+HASH-CODE (a T)
+The only method defined for HASH-CODE is the default one, which simply
+resolves to a call to sxhash. An implementation of the method can be:
+(defmethod HASH-CODE ((a T)) (sxhash a))
+      
+** Examples:
+
+None.
+
+** Notes:
+
+The implementation of HASH-CODE should coordinate with that of
+~EQUALS~. In particular, Section 18.1.2 ``Modifying Hash Table Keys'' of
+[ANSIHyperSpec] and the definiton of sxhash in the same document
+should be taken into consideration.
+
+** Side Effects:
+
+None.
+
+** Affected By:
+
+The actual implementation of the ~EQUALS~ methods.
+
+** Exceptional Situations:
+
+TBD.
+
