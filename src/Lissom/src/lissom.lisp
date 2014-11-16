@@ -1,20 +1,21 @@
 ;;;; lissom.lisp
 
-;;;; DESCRIPTION
+#|
+DESCRIPTION
 
-;;;; Common Lisp blog generator like blosxom
+Common Lisp blog generator like blosxom
 
-;;;; AUTHORS
+AUTHORS
 
-;;;; William Clifford (wobh@yahoo.com)
+William Clifford (wobh@yahoo.com)
 
-;;;; NOTES
+NOTES
 
-;;;; http://www.blosxom.com/
-;;;; http://pyblosxom.github.com/
+http://www.blosxom.com/
+http://pyblosxom.github.com/
 
-;;;; - lissom :: lithe, nimble, supple
-
+- lissom :: lithe, nimble, supple
+|#
 
 (defpackage "ORG.WOBH.LISSOM"
   (:nicknames "LISSOM" "LISXOM")
@@ -37,7 +38,7 @@
 (defparameter *datadir* "/Library/WebServer/Documents/blosxom"
 "Where are this blog's entries kept?")
 
-(defparameter *url* ""
+(defparameter *url* Nil
   "What's my preferred base URL for this blog (leave blank for automatic)?")
 
 
@@ -97,7 +98,26 @@ directory hierarchy looking for items?  If so, to what depth?
 (defun num2month (num)
   (elt +months+ num))
 
+;; Use the stated preferred URL or figure it out automatically
+;; Drop ending any / from dir settings
+;; Fix depth to take into account datadir's path
 
-;;(defparameter *divisions*
-;;  '(book part chapter section paragraph article aside sidebar word figure table))
+(defparameter *path-info* nil
+  "Global variable to be used in head/foot.{flavour} templates")
+
+;; Path Info Magic
+;; Take a gander at HTTP's PATH_INFO for optional blog name, archive yr/mo/day
+
+(defparameter *flavor* nil
+  "Flavour specified by ?flav={flav} or index.{flav}")
+
+;; Strip spurious slashes
+
+;; Date fiddling
+
+;; Defind standard template subroutine, plugin-overridable ast Plugins" Template
+(defun template (path chunk flavor)
+  )
+
+;;; Bring in the templates
 
