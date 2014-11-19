@@ -105,19 +105,44 @@ directory hierarchy looking for items?  If so, to what depth?
 (defparameter *path-info* nil
   "Global variable to be used in head/foot.{flavour} templates")
 
+(defun gatewayp ())
+(defun static-auth-p ())
+
+(defparameter *static-or-dynamic* (if (and (not gatewayp) (static-auth-p))
+				      'static
+				      'dynamic))
+
 ;; Path Info Magic
 ;; Take a gander at HTTP's PATH_INFO for optional blog name, archive yr/mo/day
 
-(defparameter *flavor* nil
+(defparameter *flavour* nil
   "Flavour specified by ?flav={flav} or index.{flav}")
 
 ;; Strip spurious slashes
 
 ;; Date fiddling
 
-;; Defind standard template subroutine, plugin-overridable ast Plugins" Template
-(defun template (path chunk flavor)
+;; Define standard template subroutine, plugin-overridable at Plugins: Template
+(defun template (path chunk flavour)
   )
 
 ;;; Bring in the templates
 
+
+;;; Plugins: Start
+(when *plugin-dir*
+  (let ((plugins (directory
+		  (merge-pathnames
+		   (make-pathname :name :wild)
+		   (pathname *plugin-dir*)))))
+    (loop for file in plugins do (load file))))
+
+(directory
+   (make-pathname :name chunk
+		  :type flavour
+		  :directory (list :absolute *data-dir* path)))
+
+;;; Generate
+(defun generate (staticp, currentdir, date, flavor, content-type)
+  
+  )
