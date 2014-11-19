@@ -1172,5 +1172,6 @@ Eh, that's just being cute.
 * References
 - http://hyperphysics.phy-astr.gsu.edu/hbase/hph.html
   + http://hyperphysics.phy-astr.gsu.edu/hbase/relativ/relcon.html#relcon
+- http://gregegan.net/FOUNDATIONS/index.html
 
 - http://www.harremoes.dk/Peter/Undervis/Turnpage/Turnpage1.html
