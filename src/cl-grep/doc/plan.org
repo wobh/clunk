@@ -314,6 +314,9 @@ when standard output is a terminal and block buffered otherwise.
 #+END_SRC
 *** TODO =get-opts= *args*
 **** TODO short "-x"
+#+BEGIN_SRC lisp
+  (let ((config )))
+#+END_SRC
 **** TODO short concatenated "-xyz"
 **** TODO short=value forms "-x value" "-x=value"
 **** TODO long "--foo"

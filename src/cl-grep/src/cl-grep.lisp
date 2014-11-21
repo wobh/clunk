@@ -15,6 +15,7 @@
 (defstruct (messages (:conc-name mesg-))
   "Messages object for accessing messages to user"
   (usage "usage: cl-grep [pattern] [file]")
+  (version "cl-grep: 0.0.1")
   (match "~&~A~%"))
 
 (defparameter *messages*
@@ -79,8 +80,21 @@
 
 ;;; Setup
 
+(defun getopts(args)
+  "Process arguments list"
+  (let ((options
+	 (list
+	  :version '("-V" "--version"))))
+      (labels ((optp (str)
+		 (char= #\- (char str 0)))
+	       ())
+	(loop
+	   for opt in args
+	   do
+	     ))))
+
 (defparameter *args*
   (or #+clisp EXT:*ARGS* nil)
   "Arguments passed to CL-Grep.")
 
-(apply #'main *args*)
+(apply #'main (getopts *args*))
