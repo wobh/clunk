@@ -90,8 +90,8 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [0/40] options
-*** TODO --help
+** TODO [2/40] options
+*** DONE --help
 Print a brief help message.
 
 - out :: *error-output*
@@ -104,7 +104,7 @@ usage: fgrep [-abcDEFGHhIiJLlmnOoPqRSsUVvwxZ] [-A num] [-B num] [-C[num]]
 [--null] [pattern] [file ...]
 #+END_EXAMPLE
 
-*** TODO -V, --version
+*** DONE -V, --version
 Display version information and exit.
 
 *** TODO -c, --count
