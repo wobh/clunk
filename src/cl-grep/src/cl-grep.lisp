@@ -14,6 +14,7 @@
 
 (defstruct (messages (:conc-name mesg-))
   "Messages object for accessing messages to user"
+  (program "cl-grep")
   (usage "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
   (match "~&~A~%"))
@@ -26,10 +27,16 @@
 ;;; Conditions
 
 (define-condition no-pattern (error)
-  ((message :reader message :initarg :message)))
+  ()
+  (:report (lambda (stream)
+	     (mesg-usage *messages*))))
 
 (define-condition invalid-option (error)
-  ((message :reader message :initarg :message)))
+  ((opt :reader given :initarg :given))
+  (:report (lambda (condition stream)
+	     (format stream "invalid option -- ~A~%~A"
+		     (given condition)
+		     (mesg-usage *messages*)))))
 
 
 ;;; Status and Settings
@@ -61,12 +68,14 @@
 	   (err-exit 0 (mesg-version *messages*)))))
   "Options and parameters")
 
+(defun strip-opt (optstr)
+  (subseq optstr (string< "--" optstr)))
+
 (defun find-setting (opt &optional (settings *settings*))
   (or (find opt settings :key 'first
 	    :test (lambda (str params)
 		    (find str params :test 'equal)))
-      (error 'invalid-option
-	     :message "cl-grep: unrecognized option ~A" opt)))
+      (error 'invalid-option :given (strip-opt opt))))
 
 (defun getopt (arg)
   (check-type arg string)
@@ -130,7 +139,7 @@
       ((null line))
     (seek-pattern pattern line)))
 
-(defun main (&optional pattern files)
+(defun main (&optional pattern &rest files)
   (unless pattern
     (err-exit 2 (mesg-usage *messages*)))
   (if files
