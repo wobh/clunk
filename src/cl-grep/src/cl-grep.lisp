@@ -79,16 +79,22 @@
 
 (defun getopt (arg)
   (check-type arg string)
-  (let ((idx (string< "--" arg)))
+  (let ((pos (position #\= arg))
+	(idx (string< "--" arg))
+	(val nil))
+    (when pos
+      (setf val (subseq arg (1+ pos)))
+      (setf arg (subseq arg 0 pos)))
     (when idx
       (ecase idx
-	(0 (values nil arg))
+	(0 (values nil arg val))
 	(1 (let ((opt (subseq arg idx)))
 	     (values
 	      (format nil "-~C" (char opt 0))
-	      (and (< 1 (length opt))
-		   (format nil "-~A" (subseq opt 1))))))
-	(2 arg)))))
+	      (when (< 1 (length opt))
+		(format nil "-~A" (subseq opt 1)))
+	      val)))
+	(2 (values arg nil val))))))
 
 (defun getopts (&optional (args *args*) (settings *settings*))
   (unless args
@@ -96,9 +102,11 @@
   (loop
      with opt
      with optchain
+     with optvalue
      do
-       (setf (values opt optchain)
+       (setf (values opt optchain optvalue)
 	     (getopt (or optchain (pop args))))
+       (when optvalue (push optvalue args))
        (cond ((and (null opt) (null optchain))
 	      (return args))
 	     ((and (null opt) (stringp optchain))
