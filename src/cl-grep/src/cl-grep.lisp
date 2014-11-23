@@ -23,14 +23,16 @@
   "Messages to user")
 
 
-;;; Settings and Status
+;;; Conditions
 
-(defstruct (settings (:conc-name nil))
-  "Settings object for accessing options and parameters")
+(define-condition no-pattern (error)
+  ((message :reader message :initarg :message)))
 
-(defparameter *settings*
-  '((("V" "-V" "--version") version boolean "show version"))
-  "Options and parameters")
+(define-condition invalid-option (error)
+  ((message :reader message :initarg :message)))
+
+
+;;; Status and Settings
 
 (defparameter *status*
   nil
@@ -39,11 +41,75 @@
 (defun grep-exit (&optional (status *status*))
   #+clisp (EXT:exit status))
 
-
-;;; Conditions
+(defun err-exit (status message)
+  (setf *status* status)
+  (format *error-output* message)
+  (grep-exit))
 
-(define-condition no-pattern (error)
-  ((message :reader message :initarg :message)))
+(defstruct (settings (:conc-name nil))
+  "Settings object for accessing options and parameters")
+
+(defparameter *settings*
+  (list
+   (list '("--help") 'boolean
+	 (lambda ()
+	   "Show help and exit"
+	   (err-exit 2 (mesg-usage *messages*))))
+   (list '("-V" "--version") 'boolean
+	 (lambda ()
+	   "show version"
+	   (err-exit 0 (mesg-version *messages*)))))
+  "Options and parameters")
+
+(defun find-setting (opt &optional (settings *settings*))
+  (or (find opt settings :key 'first
+	    :test (lambda (str params)
+		    (find str params :test 'equal)))
+      (error 'invalid-option
+	     :message "cl-grep: unrecognized option ~A" opt)))
+
+(defun getopt (arg)
+  (check-type arg string)
+  (let ((idx (string< "--" arg)))
+    (when idx
+      (ecase idx
+	(0 (values nil arg))
+	(1 (let ((opt (subseq arg idx)))
+	     (values
+	      (format nil "-~C" (char opt 0))
+	      (and (< 1 (length opt))
+		   (format nil "-~A" (subseq opt 1))))))
+	(2 arg)))))
+
+(defun getopts (&optional (args *args*) (settings *settings*))
+  (unless args
+    (err-exit 2 (mesg-usage *messages*)))
+  (loop
+     with opt
+     with optchain
+     do
+       (setf (values opt optchain)
+	     (getopt (or optchain (pop args))))
+       (cond ((and (null opt) (null optchain))
+	      (return args))
+	     ((and (null opt) (stringp optchain))
+	      (push optchain args)
+	      (return args))
+	     ((stringp opt)
+	      (destructuring-bind (type func)
+		  (rest (find-setting opt settings))
+		(if (eq type 'boolean)
+		    (funcall func)
+		    (let ((arg (if optchain (subseq optchain 1) (pop args))))
+		      (funcall func
+			       (case type
+				 (integer (parse-integer arg))
+				 (string arg))))))))))
+
+(defparameter *args*
+  (or #+clisp EXT:*ARGS* nil)
+  "Arguments passed to CL-Grep.")
+
 
 
 ;;; CL-Grep
@@ -64,11 +130,6 @@
       ((null line))
     (seek-pattern pattern line)))
 
-(defun err-exit (status message)
-  (setf *status* status)
-  (format *error-output* message)
-  (grep-exit))
-
 (defun main (&optional pattern files)
   (unless pattern
     (err-exit 2 (mesg-usage *messages*)))
@@ -83,101 +144,5 @@
   (unless *status* (setf *status* 1))
   (grep-exit))
 
-
-;;; Setup
-
-(let ((*args* (or #+clisp EXT:*ARGS* nil)))
-  (unless *args*
-    (err-exit 2 (mesg-usage *messages*)))
-  (let ((opt-stop "--")
-	(opt nil)
-	(optchain nil))
-    (labels ((string-or-nil-p (val)
-	       (or (typep val 'null)
-		   (typep val 'string)))
-	     (optp (str)
-	       (when (< 1 (length str))
-		   (and (char= #\- (char str 0))
-		     (not (string= str "--")))))
-	     (optchainp (str)
-	       (let ((reststr (subseq str 1)))
-		 (when (and (not (optp reststr))
-			    (> 1 (length reststr)))
-		   str)))
-	     (find-setting (opt)
-	       (find opt settings :key 'first
-		     :test (lambda (str params)
-			     (find str params :test 'equal))))
-	     (end-optchain ()
-	       (setq optchain nil)
-	       (setq opt (pop *args*))))
-      (tagbody
-	 (go setup-opt)
-       setup-opt
-	 (cond ((string< "" optchain)
-		(setf opt (format nil "-~C" (char opt 0)))
-		(setq optchain (subseq optchain 1))
-		(when (string= "" optchain)
-		  (setq optchain nil)))
-	       ((null optchain)
-		(setf opt (pop *args*))
-		(setq optchain (optchainp opt))
-		(when optchain
-		  (go setup-opt)))
-	       (t
-		(check-type optchain (satisfies string-or-nil-p))))
-	 (go check-opt)
-       check-opt
-	 (if (optp opt)
-	     (go proc-opt)
-	     (go make-args))
-       proc-opt
-	 
-	 (cond ((null optchain)
-		(setq opt (find-setting opt))
-		(go proc-setting))
-	       ((string< "" optchain)
-		(setq opt (find-setting ))
-		
-		
-		(go proc-setting))
-	       (t
-		))
-       proc-setting
-	 (destructuring-bind (var type) (rest (butlast opt))
-	   (setf (var *settings*
-		      (if (eq type 'boolean)
-			  (not (var *settings))
-			  (pop *args*)))))
-	 (when *args*
-	   (setq opt (if optchain
-			 (char 0 (format nil "-~C" (char opt 0)))
-			 (pop *args*)))
-	   (cond ((optp opt)
-		  (setq optchain (optchainp opt))
-		  (when optchain
-		    (setf opt (delete ))))
-		 (t
-		  (go make-args))))
-       make-args
-	 
-	 )
-      (loop
-	 for opt in args
-	 until
-	   (or (not (optp opt))
-	       (string= opt opt-stop))
-	 do
-	   (when (optchainp opt)
-	     (map 'list opt
-		  (lambda ())))
-	   (let ((setting (find-setting opt)))
-	     )))))
-
-(defparameter *args*
-  (or #+clisp EXT:*ARGS* nil)
-  "Arguments passed to CL-Grep.")
-
-
-
 (apply #'main (getopts *args*))
+
