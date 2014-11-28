@@ -17,7 +17,8 @@
   (program "cl-grep")
   (usage "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
-  (match "~&~A~%"))
+  (filename "~A:")
+  (match "~A"))
 
 (defparameter *messages*
   (make-messages)
@@ -54,7 +55,9 @@
   (grep-exit))
 
 (defstruct (settings (:conc-name nil))
-  "Settings object for accessing options and parameters")
+  "Settings object for accessing options and parameters"
+  (current-stream-name nil)
+  (show-current-stream-name nil))
 
 (defparameter *settings* (make-settings))
 
@@ -135,7 +138,12 @@
 
 (defun setup-output ()
   (with-output-to-string (str)
-    (princ (mesg-match *messages*) str)))
+    (princ "~&" str)
+    (when (show-current-stream-name *settings*)
+      (format str (mesg-filename *messages*)
+              (current-stream-name *settings*)))
+    (princ (mesg-match *messages*) str)
+    (princ "~%" str)))
 
 (defun write-match (text)
   (format *standard-output*
@@ -156,14 +164,18 @@
 (defun main (&optional pattern &rest files)
   (unless pattern
     (err-exit 2 (mesg-usage *messages*)))
-  (if files
-      (loop
-	 for file in files
-	 do
-	   (with-open-file (stream file)
-	     (scan-stream stream pattern)))
-      (with-open-stream (stream *standard-input*)
-        (scan-stream stream pattern)))
+  (cond
+    (files
+     (when (< 1 (length files))
+       (setf (show-current-stream-name *settings*) t))
+     (dolist (file files)
+       (setf (current-stream-name *settings*) file)
+       (with-open-file (stream file)
+         (scan-stream stream pattern))))
+    (t
+     (with-open-stream (stream *standard-input*)
+       (setf (current-stream-name *settings*) "(standard-input)")
+       (scan-stream stream pattern))))
   (unless *status* (setf *status* 1))
   (grep-exit))
 
