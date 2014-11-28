@@ -56,7 +56,9 @@
 (defstruct (settings (:conc-name nil))
   "Settings object for accessing options and parameters")
 
-(defparameter *settings*
+(defparameter *settings* (make-settings))
+
+(defparameter *options*
   (list
    (list '("--help") 'boolean
 	 (lambda ()
@@ -71,8 +73,8 @@
 (defun strip-opt (optstr)
   (subseq optstr (string< "--" optstr)))
 
-(defun find-setting (opt &optional (settings *settings*))
-  (or (find opt settings :key 'first
+(defun find-option (opt &optional (options *options*))
+  (or (find opt options :key 'first
 	    :test (lambda (str params)
 		    (find str params :test 'equal)))
       (error 'invalid-option :given (strip-opt opt))))
@@ -96,7 +98,7 @@
 	      val)))
 	(2 (values arg nil val))))))
 
-(defun getopts (&optional (args *args*) (settings *settings*))
+(defun getopts (&optional (args *args*) (options *options*))
   (unless args
     (err-exit 2 (mesg-usage *messages*)))
   (loop
@@ -114,7 +116,7 @@
 	      (return args))
 	     ((stringp opt)
 	      (destructuring-bind (type func)
-		  (rest (find-setting opt settings))
+		  (rest (find-option opt options))
 		(if (eq type 'boolean)
 		    (funcall func)
 		    (let ((arg (if optchain (subseq optchain 1) (pop args))))
