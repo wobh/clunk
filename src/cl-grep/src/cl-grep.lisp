@@ -133,9 +133,13 @@
 
 ;;; CL-Grep
 
+(defun setup-output ()
+  (with-output-to-string (str)
+    (princ (mesg-match *messages*) str)))
+
 (defun write-match (text)
   (format *standard-output*
-	  (mesg-match *messages*)
+	  (setup-output)
 	  text))
 
 (defun seek-pattern (pattern text)
