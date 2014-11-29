@@ -141,7 +141,7 @@ An option definition list is a list with the following elements:
           (push optchain args)
           (return args))
          ((stringp opt)
-          (destructuring-bind (type func &optional default)
+          (destructuring-bind (type func)
               (rest (find-option opt options))
             (if (eq type 'boolean)
                 (funcall func)
