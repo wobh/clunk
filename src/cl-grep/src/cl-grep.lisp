@@ -57,30 +57,51 @@
 (defstruct (settings (:conc-name nil))
   "Settings object for accessing options and parameters"
   (current-stream-name nil)
-  (show-current-stream-name nil))
+  (show-current-stream-name nil)
+  (always-show-stream-name nil)
+  (never-show-stream-name nil))
 
 (defparameter *settings* (make-settings))
 
 (defparameter *options*
   (list
-   (list '("--help") 'boolean
+   (list '("--help")
+         'boolean
 	 (lambda ()
-	   "Show help and exit"
+	   "Show help and exit."
 	   (err-exit 2 (mesg-usage *messages*))))
-   (list '("-V" "--version") 'boolean
+   (list '("-V" "--version")
+         'boolean
 	 (lambda ()
-	   "show version"
-	   (err-exit 0 (mesg-version *messages*)))))
-  "Options and parameters")
+	   "Show version and exit."
+	   (err-exit 0 (mesg-version *messages*))))
+   (list '("-H")
+         'boolean
+         (lambda ()
+           "Always show filenames."
+           (setf (always-show-stream-name *settings*) t)))
+   (list '("-h" "--no-filename")
+         'boolean
+         (lambda ()
+           "Never show filenames."
+           (setf (never-show-stream-name *settings*) t))))
+  "Options and parameters.
 
-(defun strip-opt (optstr)
-  (subseq optstr (string< "--" optstr)))
+An option definition list is a list with the following elements:
+
+- list of option's parameters
+- option argument type
+- lambda to set option value in *settings*
+- default arguments to lambda, if any
+
+(destructuring-bind () ")
 
 (defun find-option (opt &optional (options *options*))
-  (or (find opt options :key 'first
+  (or (find opt options
+            :key 'first
 	    :test (lambda (str params)
 		    (find str params :test 'equal)))
-      (error 'invalid-option :given (strip-opt opt))))
+      (error 'invalid-option :given opt)))
 
 (defun getopt (arg)
   (check-type arg string)
@@ -109,24 +130,26 @@
      with optchain
      with optvalue
      do
+       (unless args (return))
        (setf (values opt optchain optvalue)
 	     (getopt (or optchain (pop args))))
        (when optvalue (push optvalue args))
-       (cond ((and (null opt) (null optchain))
-	      (return args))
-	     ((and (null opt) (stringp optchain))
-	      (push optchain args)
-	      (return args))
-	     ((stringp opt)
-	      (destructuring-bind (type func)
-		  (rest (find-option opt options))
-		(if (eq type 'boolean)
-		    (funcall func)
-		    (let ((arg (if optchain (subseq optchain 1) (pop args))))
-		      (funcall func
-			       (case type
-				 (integer (parse-integer arg))
-				 (string arg))))))))))
+       (cond
+         ((and (null opt) (null optchain))
+          (return args))
+         ((and (null opt) (stringp optchain))
+          (push optchain args)
+          (return args))
+         ((stringp opt)
+          (destructuring-bind (type func &optional default)
+              (rest (find-option opt options))
+            (if (eq type 'boolean)
+                (funcall func)
+                (let ((arg (if optchain (subseq optchain 1) (pop args))))
+                  (funcall func
+                           (case type
+                             (integer (parse-integer arg))
+                             (string arg))))))))))
 
 (defparameter *args*
   (or #+clisp EXT:*ARGS* nil)
@@ -166,8 +189,10 @@
     (err-exit 2 (mesg-usage *messages*)))
   (cond
     (files
-     (when (< 1 (length files))
-       (setf (show-current-stream-name *settings*) t))
+     (unless (never-show-stream-name *settings*)
+       (when (or (< 1 (length files))
+                 (always-show-stream-name *settings*))
+         (setf (show-current-stream-name *settings*) t)))
      (dolist (file files)
        (setf (current-stream-name *settings*) file)
        (with-open-file (stream file)
@@ -180,4 +205,3 @@
   (grep-exit))
 
 (apply #'main (getopts *args*))
-
