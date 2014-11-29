@@ -148,7 +148,11 @@ An option definition list is a list with the following elements:
                 (let ((arg (if optchain (subseq optchain 1) (pop args))))
                   (funcall func
                            (case type
-                             (integer (parse-integer arg))
+                             (integer
+                              (handler-bind ((parse-error
+                                               (error 'invalid-option
+                                                      :given arg)))
+                                (parse-integer arg)))
                              (string arg))))))))))
 
 (defparameter *args*
