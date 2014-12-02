@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [2/40] options
+** TODO [4/40] options
 *** DONE --help
 Print a brief help message.
 
@@ -151,10 +151,10 @@ whitespace may be given between the option and its argument.
 *** TODO --context[=num]
 Print num lines of leading and trailing context. The default is 2.
 
-*** TODO -H
+*** DONE -H
 Always print filename headers with output lines.
 
-*** TODO -h, --no-filename
+*** DONE -h, --no-filename
 Never print filename headers (i.e. filenames) with output lines.
 
 *** TODO -a, --text
