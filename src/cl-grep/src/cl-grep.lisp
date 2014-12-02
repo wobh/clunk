@@ -171,24 +171,31 @@ An option definition list is a list with the following elements:
 
 ;;; CL-Grep
 
-(defun setup-output ()
+(defun setup-output (o-format)
   (with-output-to-string (str)
     (princ "~&" str)
     (when (show-current-stream-name *settings*)
       (format str (mesg-filename *messages*)
               (current-stream-name *settings*)))
-    (princ (mesg-match *messages*) str)
+    (princ o-format str)
     (princ "~%" str)))
 
 (defun write-match (text)
-  (format (o-stream *messages*)
-          (setup-output)
+  (format (mesg-o-stream *messages*)
+          (setup-output (mesg-match *messages*))
           text))
+
+(defun write-count (count)
+  (format (mesg-o-stream *messages*)
+          (setup-output (mesg-format *messages*))
+          count))
 
 (defun seek-pattern (pattern text)
   (when (search pattern text)
     (unless *status* (setf *status* 0))
-    (write-match text)))
+    (if (show-match-count *settings*)
+        (incf (show-match-count *settings*))
+        (write-match text))))
 
 (defun scan-stream (pattern stream)
   (do ((line (read-line stream nil) 
@@ -209,12 +216,14 @@ An option definition list is a list with the following elements:
        (setf (i-stream-name *messages*) file)
        (with-open-file (stream file)
          (scan-stream pattern stream))
+       (when (show-match-count)
+         (princ (setup-output )))
        (princ (get-output-stream-string (o-stream *messages*)))))
     (t
      (setf (i-stream-name *messages*) "(standard-input)")
      (with-open-stream (stream *standard-input*)
-       (scan-stream pattern stream)
-       (princ (get-output-stream-string (o-stream *messages*))))))
+       (scan-stream pattern stream))
+     (princ (get-output-stream-string (o-stream *messages*)))))
   (unless *status* (setf *status* 1))
   (grep-exit))
 
