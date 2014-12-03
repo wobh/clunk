@@ -12,14 +12,15 @@
 
 ;;; Messages
 
-(defstruct (messages (:conc-name mesg-))
+(defstruct (messages (:conc-name nil))
   "Messages object for accessing messages to user"
   (program "cl-grep")
-  (usage "usage: cl-grep [pattern] [file]")
+  (usage-str "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
   (filename "~A:")
-  (match "~A")
-  (count "~D")
+  (match-fmt "~A")
+  (count-fmt "~D")
+  (match-count 0)
   (i-stream-name nil)
   (o-stream (make-string-output-stream)))
 
@@ -28,43 +29,50 @@
   "Messages to user")
 
 
-;;; Conditions
-
-(define-condition no-pattern (error)
-  ()
-  (:report (lambda (stream)
-             (mesg-usage *messages*))))
-
-(define-condition invalid-option (error)
-  ((opt :reader given :initarg :given))
-  (:report (lambda (condition stream)
-             (format stream "invalid option -- ~A~%~A"
-                     (given condition)
-                     (mesg-usage *messages*)))))
-
-
-;;; Status and Settings
-
-(defparameter *status*
-  nil
-  "Program status")
-
-(defun grep-exit (&optional (status *status*))
-  #+clisp (EXT:exit status))
-
-(defun err-exit (status message)
-  (setf *status* status)
-  (format *error-output* message)
-  (grep-exit))
+;;; Settings
 
 (defstruct (settings (:conc-name nil))
   "Settings object for accessing options and parameters"
   (show-current-stream-name nil)
   (always-show-stream-name nil)
   (never-show-stream-name nil)
-  (show-match-count nil))
+  (show-match-count nil)
+  (max-match-count nil))
 
-(defparameter *settings* (make-settings))
+(defparameter *settings*
+  (make-settings)
+  "Settings and behavior switches")
+
+
+;;; Options
+
+;; (defmacro define-option-type (typespec &body body)
+;;   "Define type-checking function."
+;;   (let ((var (gensym))
+;;         (spec (gensym))
+;;         (val (gensym)))
+;;     `(lambda (&optional ,var)
+;;        ,(format nil "With string, parse and check against type ~A" typespec)
+;;        (if ,var
+;;            (let ((,val (handler-bind
+;;                            ((parse-error
+;;                               (error 'invalid-option
+;;                                      :given ,var)))
+;;                          ,body)))
+;;              (check-type ,val ,spec)
+;;              ,val)
+;;            ,spec))))
+
+;; (if arg
+;;     (let ((value
+;;             (handler-bind
+;;                 ((parse-error
+;;                    (error 'invalid-option
+;;                           :given arg)))
+;;               (parse-integer arg))))
+;;       (check-type value typespec)
+;;       value)
+;;     typespec)
 
 (defparameter *options*
   (list
@@ -72,12 +80,12 @@
          'boolean
          (lambda ()
            "Show help and exit."
-           (err-exit 2 (mesg-usage *messages*))))
+           (err-exit 2 (usage *messages*))))
    (list '("-V" "--version")
          'boolean
          (lambda ()
            "Show version and exit."
-           (err-exit 0 (mesg-version *messages*))))
+           (err-exit 0 (version *messages*))))
    (list '("-H")
          'boolean
          (lambda ()
@@ -92,7 +100,13 @@
          'boolean
          (lambda ()
            "Show count of matches"
-           (setf (show-match-count *settings*) 0))))
+           (setf (show-match-count *settings*) t)))
+   (list '("-m" "--max-count")
+         '(integer 0)
+         (lambda (max)
+           "Stop reading file after number of matches"
+           (setf (max-match-count *settings*)
+                 (parse-integer max)))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -102,7 +116,16 @@ An option definition list is a list with the following elements:
 - lambda to set option value in *settings*
 - default arguments to lambda, if any
 
-(destructuring-bind () ")
+(destructuring-bind
+    (params typespec setoptf &optional default-val) optlist
+  ...)")
+
+(define-condition invalid-option (error)
+  ((opt :reader given :initarg :given))
+  (:report (lambda (condition stream)
+             (format stream "invalid option -- ~A~%~A"
+                     (given condition)
+                     (usage-str *messages*)))))
 
 (defun find-option (opt &optional (options *options*))
   (or (find opt options
@@ -132,7 +155,7 @@ An option definition list is a list with the following elements:
 
 (defun getopts (&optional (args *args*) (options *options*))
   (unless args
-    (err-exit 2 (mesg-usage *messages*)))
+    (err-exit 2 (usage-str *messages*)))
   (loop
      with opt
      with optchain
@@ -154,19 +177,26 @@ An option definition list is a list with the following elements:
             (if (eq type 'boolean)
                 (funcall func)
                 (let ((arg (if optchain (subseq optchain 1) (pop args))))
-                  (funcall func
-                           (case type
-                             (integer
-                              (handler-bind ((parse-error
-                                               (error 'invalid-option
-                                                      :given arg)))
-                                (parse-integer arg)))
-                             (string arg))))))))))
+                  (funcall func arg))))))))
 
 (defparameter *args*
   (or #+clisp EXT:*ARGS* nil)
   "Arguments passed to CL-Grep.")
 
+
+;;; Status
+
+(defparameter *status*
+  nil
+  "Program status")
+
+(defun grep-exit (&optional (status *status*))
+  #+clisp (EXT:exit status))
+
+(defun err-exit (status message)
+  (setf *status* status)
+  (format *error-output* message)
+  (grep-exit))
 
 
 ;;; CL-Grep
@@ -175,37 +205,42 @@ An option definition list is a list with the following elements:
   (with-output-to-string (str)
     (princ "~&" str)
     (when (show-current-stream-name *settings*)
-      (format str (mesg-filename *messages*)
+      (format str (filename *messages*)
               (current-stream-name *settings*)))
     (princ o-format str)
     (princ "~%" str)))
 
 (defun write-match (text)
-  (format (mesg-o-stream *messages*)
-          (setup-output (mesg-match *messages*))
+  (format (o-stream *messages*)
+          (setup-output (match-fmt *messages*))
           text))
 
 (defun write-count (count)
-  (format (mesg-o-stream *messages*)
-          (setup-output (mesg-format *messages*))
+  (format (o-stream *messages*)
+          (setup-output (count-fmt *messages*))
           count))
 
 (defun seek-pattern (pattern text)
   (when (search pattern text)
     (unless *status* (setf *status* 0))
-    (if (show-match-count *settings*)
-        (incf (show-match-count *settings*))
-        (write-match text))))
+    (when (or (show-match-count *settings*)
+              (max-match-count *settings*))
+      (incf (match-count *messages*)))
+    (unless (show-match-count *settings*)
+      (write-match text))))
 
 (defun scan-stream (pattern stream)
   (do ((line (read-line stream nil) 
              (read-line stream nil)))
-      ((null line))
+      ((or (null line)
+           (when (max-match-count *settings*)
+             (= (max-match-count *settings*)
+                (match-count *messages*)))))
     (seek-pattern pattern line)))
 
 (defun main (&optional pattern &rest files)
   (unless pattern
-    (err-exit 2 (mesg-usage *messages*)))
+    (err-exit 2 (usage-str *messages*)))
   (cond
     (files
      (unless (never-show-stream-name *settings*)
@@ -216,8 +251,8 @@ An option definition list is a list with the following elements:
        (setf (i-stream-name *messages*) file)
        (with-open-file (stream file)
          (scan-stream pattern stream))
-       (when (show-match-count)
-         (princ (setup-output )))
+       (when (show-match-count *settings*)
+         (write-count (match-count *messages*)))
        (princ (get-output-stream-string (o-stream *messages*)))))
     (t
      (setf (i-stream-name *messages*) "(standard-input)")
