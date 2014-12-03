@@ -201,6 +201,17 @@ An option definition list is a list with the following elements:
 
 ;;; CL-Grep
 
+;; (when (show-match-count *settings*)
+;;   (write-count (match-count *messages*)))
+;; (princ (get-output-stream-string (o-stream *messages*)))
+
+;; (format stream "~&~@[~A:~]~A~%"
+;;         (and (show-current-stream-name *settings)
+;;              (current-stream-name *settings*))
+;;         (if (show-match-count *settings*)
+;;             (match-count *messages*)
+;;             text))
+
 (defun setup-output (o-format)
   (with-output-to-string (str)
     (princ "~&" str)
@@ -230,13 +241,17 @@ An option definition list is a list with the following elements:
       (write-match text))))
 
 (defun scan-stream (pattern stream)
-  (do ((line (read-line stream nil) 
+  (do ((line (read-line stream nil)
              (read-line stream nil)))
       ((or (null line)
            (when (max-match-count *settings*)
              (= (max-match-count *settings*)
                 (match-count *messages*)))))
     (seek-pattern pattern line)))
+
+;; FIXME: control flow messed up. When scanning STDIN, it has to read
+;; in one extra line before it knows that it's hit the max.
+
 
 (defun main (&optional pattern &rest files)
   (unless pattern
@@ -257,9 +272,17 @@ An option definition list is a list with the following elements:
     (t
      (setf (i-stream-name *messages*) "(standard-input)")
      (with-open-stream (stream *standard-input*)
-       (scan-stream pattern stream))
-     (princ (get-output-stream-string (o-stream *messages*)))))
+       (scan-stream pattern stream)
+       (when (show-match-count *settings*)
+         (write-count (match-count *messages*)))
+       (princ (get-output-stream-string (o-stream *messages*))))))
   (unless *status* (setf *status* 1))
   (grep-exit))
+
+;; FIXME: when scanning STDIN in doesn't print match lines right away
+;; anymore.
+
+;; TODO streamline the control flow. Limit what main does when
+;; returned. Ideally, it shouldn't print anything.
 
 (apply #'main (getopts *args*))
