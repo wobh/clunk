@@ -107,8 +107,17 @@ usage: fgrep [-abcDEFGHhIiJLlmnOoPqRSsUVvwxZ] [-A num] [-B num] [-C[num]]
 *** DONE -V, --version
 Display version information and exit.
 
+*** DONE -H
+Always print filename headers with output lines.
+
+*** DONE -h, --no-filename
+Never print filename headers (i.e. filenames) with output lines.
+
 *** DONE -c, --count
 Only a count of selected lines is written to standard output.
+
+*** TODO -m num, --max-count=num
+Stop reading the file after num matches.
 
 *** TODO -s, --no-messages
 Silent mode. Nonexistent and unreadable files are ignored (i.e. their
@@ -123,9 +132,6 @@ respective matched line.
 
 *** TODO -i, --ignore-case
 Perform case insensitive matching. By default, grep is case sensitive.
-
-*** TODO -m num, --max-count=num
-Stop reading the file after num matches.
 
 *** TODO -n, --line-number
 Each output line is preceded by its relative line number in the file,
@@ -150,12 +156,6 @@ whitespace may be given between the option and its argument.
 
 *** TODO --context[=num]
 Print num lines of leading and trailing context. The default is 2.
-
-*** DONE -H
-Always print filename headers with output lines.
-
-*** DONE -h, --no-filename
-Never print filename headers (i.e. filenames) with output lines.
 
 *** TODO -a, --text
 Treat all files as ASCII text. Normally grep will simply print
