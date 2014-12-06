@@ -207,7 +207,7 @@ An option definition list is a list with the following elements:
 
 ;; (format stream "~&~@[~A:~]~A~%"
 ;;         (and (show-current-stream-name *settings)
-;;              (current-stream-name *settings*))
+;;              (i-stream-name *settings*))
 ;;         (if (show-match-count *settings*)
 ;;             (match-count *messages*)
 ;;             text))
@@ -217,7 +217,7 @@ An option definition list is a list with the following elements:
     (princ "~&" str)
     (when (show-current-stream-name *settings*)
       (format str (filename *messages*)
-              (current-stream-name *settings*)))
+              (i-stream-name *messages*)))
     (princ o-format str)
     (princ "~%" str)))
 
@@ -231,22 +231,31 @@ An option definition list is a list with the following elements:
           (setup-output (count-fmt *messages*))
           count))
 
+(defun count-match ()
+  (incf (match-count *messages*)))
+
+(defun max-matches-counted-p ()
+  (= (max-match-count *settings*)
+     (match-count *messages*)))
+
+(defun handle-match (pattern text)
+  (when (or (show-match-count *settings*)
+            (max-match-count *settings*))
+      (count-match))
+  (unless (show-match-count *settings*)
+    (write-match text)))
+
 (defun seek-pattern (pattern text)
   (when (search pattern text)
     (unless *status* (setf *status* 0))
-    (when (or (show-match-count *settings*)
-              (max-match-count *settings*))
-      (incf (match-count *messages*)))
-    (unless (show-match-count *settings*)
-      (write-match text))))
+    (handle-match pattern text)))
 
 (defun scan-stream (pattern stream)
   (do ((line (read-line stream nil)
              (read-line stream nil)))
       ((or (null line)
            (when (max-match-count *settings*)
-             (= (max-match-count *settings*)
-                (match-count *messages*)))))
+             (max-matches-counted-p))))
     (seek-pattern pattern line)))
 
 ;; FIXME: control flow messed up. When scanning STDIN, it has to read
