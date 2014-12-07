@@ -46,34 +46,6 @@
 
 ;;; Options
 
-;; (defmacro define-option-type (typespec &body body)
-;;   "Define type-checking function."
-;;   (let ((var (gensym))
-;;         (spec (gensym))
-;;         (val (gensym)))
-;;     `(lambda (&optional ,var)
-;;        ,(format nil "With string, parse and check against type ~A" typespec)
-;;        (if ,var
-;;            (let ((,val (handler-bind
-;;                            ((parse-error
-;;                               (error 'invalid-option
-;;                                      :given ,var)))
-;;                          ,body)))
-;;              (check-type ,val ,spec)
-;;              ,val)
-;;            ,spec))))
-
-;; (if arg
-;;     (let ((value
-;;             (handler-bind
-;;                 ((parse-error
-;;                    (error 'invalid-option
-;;                           :given arg)))
-;;               (parse-integer arg))))
-;;       (check-type value typespec)
-;;       value)
-;;     typespec)
-
 (defparameter *options*
   (list
    (list '("--help")
@@ -212,6 +184,8 @@ An option definition list is a list with the following elements:
 ;;             (match-count *messages*)
 ;;             text))
 
+;; TODO streamline the control flow of printing.
+
 (defun setup-output (o-format)
   (with-output-to-string (str)
     (princ "~&" str)
@@ -255,14 +229,11 @@ An option definition list is a list with the following elements:
   (loop
     for line = (read-line stream nil)
       then (read-line stream nil)
-    do
-      (seek-pattern pattern line)
+    do (seek-pattern pattern line)
     until (or (null line)
-              (max-matches-counted-p))))
-
-;; FIXME: control flow messed up. When scanning STDIN, it has to read
-;; in one extra line before it knows that it's hit the max.
-
+              (max-matches-counted-p))
+    finally (when (show-match-count *settings*)
+              (write-count (match-count *messages*)))))
 
 (defun main (&optional pattern &rest files)
   (unless pattern
@@ -276,24 +247,13 @@ An option definition list is a list with the following elements:
      (dolist (file files)
        (setf (i-stream-name *messages*) file)
        (with-open-file (stream file)
-         (scan-stream pattern stream))
-       (when (show-match-count *settings*)
-         (write-count (match-count *messages*)))
-       (princ (get-output-stream-string (o-stream *messages*)))))
+         (scan-stream pattern stream))))
     (t
-     (setf (i-stream-name *messages*) "(standard-input)")
+     (setf (i-stream-name *messages*) "(standard-input)"
+           (o-stream *messages*) *standard-output*)
      (with-open-stream (stream *standard-input*)
-       (scan-stream pattern stream)
-       (when (show-match-count *settings*)
-         (write-count (match-count *messages*)))
-       (princ (get-output-stream-string (o-stream *messages*))))))
+       (scan-stream pattern stream))))
   (unless *status* (setf *status* 1))
   (grep-exit))
-
-;; FIXME: when scanning STDIN in doesn't print match lines right away
-;; anymore.
-
-;; TODO streamline the control flow. Limit what main does when
-;; returned. Ideally, it shouldn't print anything.
 
 (apply #'main (getopts *args*))

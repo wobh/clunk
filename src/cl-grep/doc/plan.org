@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [5/40] options
+** TODO [6/40] options
 *** DONE --help
 Print a brief help message.
 
@@ -116,7 +116,7 @@ Never print filename headers (i.e. filenames) with output lines.
 *** DONE -c, --count
 Only a count of selected lines is written to standard output.
 
-*** TODO -m num, --max-count=num
+*** DONE -m num, --max-count=num
 Stop reading the file after num matches.
 
 *** TODO -s, --no-messages
