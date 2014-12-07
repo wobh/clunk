@@ -235,8 +235,9 @@ An option definition list is a list with the following elements:
   (incf (match-count *messages*)))
 
 (defun max-matches-counted-p ()
-  (= (max-match-count *settings*)
-     (match-count *messages*)))
+  (when (max-match-count *settings*)
+    (= (max-match-count *settings*)
+       (match-count *messages*))))
 
 (defun handle-match (pattern text)
   (when (or (show-match-count *settings*)
@@ -251,12 +252,13 @@ An option definition list is a list with the following elements:
     (handle-match pattern text)))
 
 (defun scan-stream (pattern stream)
-  (do ((line (read-line stream nil)
-             (read-line stream nil)))
-      ((or (null line)
-           (when (max-match-count *settings*)
-             (max-matches-counted-p))))
-    (seek-pattern pattern line)))
+  (loop
+    for line = (read-line stream nil)
+      then (read-line stream nil)
+    do
+      (seek-pattern pattern line)
+    until (or (null line)
+              (max-matches-counted-p))))
 
 ;; FIXME: control flow messed up. When scanning STDIN, it has to read
 ;; in one extra line before it knows that it's hit the max.
