@@ -37,7 +37,8 @@
   (always-show-stream-name nil)
   (never-show-stream-name nil)
   (show-match-count nil)
-  (max-match-count nil))
+  (max-match-count nil)
+  (ignore-file-errors nil))
 
 (defparameter *settings*
   (make-settings)
@@ -78,7 +79,12 @@
          (lambda (max)
            "Stop reading file after number of matches"
            (setf (max-match-count *settings*)
-                 (parse-integer max)))))
+                 (parse-integer max))))
+   (list '("-s" "--no-messages")
+         'boolean
+         (lambda ()
+           "Silent mode. Suppress error messages from unreadable or nonexistant files."
+           (setf (ignore-file-errors *settings*) t))))  
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -245,9 +251,14 @@ An option definition list is a list with the following elements:
                  (always-show-stream-name *settings*))
          (setf (show-current-stream-name *settings*) t)))
      (dolist (file files)
-       (setf (i-stream-name *messages*) file)
-       (with-open-file (stream file)
-         (scan-stream pattern stream))))
+       (handler-bind
+           ((file-error
+             (lambda (err)
+               (when (ignore-file-errors *settings*)
+                 (return)))))
+         (setf (i-stream-name *messages*) file)
+         (with-open-file (stream file)
+           (scan-stream pattern stream)))))
     (t
      (setf (i-stream-name *messages*) "(standard-input)"
            (o-stream *messages*) *standard-output*)

@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [6/40] options
+** TODO [7/40] options
 *** DONE --help
 Print a brief help message.
 
@@ -107,6 +107,10 @@ usage: fgrep [-abcDEFGHhIiJLlmnOoPqRSsUVvwxZ] [-A num] [-B num] [-C[num]]
 *** DONE -V, --version
 Display version information and exit.
 
+*** DONE -s, --no-messages
+Silent mode. Nonexistent and unreadable files are ignored (i.e. their
+error messages are suppressed).
+
 *** DONE -H
 Always print filename headers with output lines.
 
@@ -119,24 +123,20 @@ Only a count of selected lines is written to standard output.
 *** DONE -m num, --max-count=num
 Stop reading the file after num matches.
 
-*** TODO -s, --no-messages
-Silent mode. Nonexistent and unreadable files are ignored (i.e. their
-error messages are suppressed).
-
 *** TODO -v, --invert-match
 Selected lines are those not matching any of the specified patterns.
 
 *** TODO -b, --byte-offset
 The offset in bytes of a matched pattern is displayed in front of the
 respective matched line.
-
-*** TODO -i, --ignore-case
-Perform case insensitive matching. By default, grep is case sensitive.
-
 *** TODO -n, --line-number
 Each output line is preceded by its relative line number in the file,
 starting at line 1. The line number counter is reset for each file
 processed. This option is ignored if -c, -L, -l, or -q is specified.
+
+*** TODO -i, --ignore-case
+Perform case insensitive matching. By default, grep is case sensitive.
+
 
 *** TODO -o, --only-matching
 Prints only the matching part of the lines.
