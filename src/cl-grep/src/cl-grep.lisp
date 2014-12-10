@@ -21,8 +21,7 @@
   (match-fmt "~A")
   (count-fmt "~D")
   (match-count 0)
-  (i-stream-name nil)
-  (o-stream (make-string-output-stream)))
+  (input-stream-name nil))
 
 (defparameter *messages*
   (make-messages)
@@ -33,12 +32,15 @@
 
 (defstruct (settings (:conc-name nil))
   "Settings object for accessing options and parameters"
+  (output-stream *standard-output*)
   (show-current-stream-name nil)
   (always-show-stream-name nil)
   (never-show-stream-name nil)
   (show-match-count nil)
   (max-match-count nil)
-  (ignore-file-errors nil))
+  (ignore-file-errors nil)
+  (invert-match nil)
+  (match-test #'string=))
 
 (defparameter *settings*
   (make-settings)
@@ -72,19 +74,27 @@
    (list '("-c" "--count")
          'boolean
          (lambda ()
-           "Show count of matches"
+           "Show count of matches."
            (setf (show-match-count *settings*) t)))
    (list '("-m" "--max-count")
          '(integer 0)
          (lambda (max)
-           "Stop reading file after number of matches"
+           "Stop reading file after number of matches."
            (setf (max-match-count *settings*)
                  (parse-integer max))))
    (list '("-s" "--no-messages")
          'boolean
          (lambda ()
-           "Silent mode. Suppress error messages from unreadable or nonexistant files."
-           (setf (ignore-file-errors *settings*) t))))  
+           "Silent mode. Suppress error messages from unreadable or nonexistent files."
+           (setf (ignore-file-errors *settings*) t)))
+   (list '("-v" "--invert-match")
+         'boolean
+         (lambda ()
+           "Show only lines that do not match patterns."
+           (setf (invert-match *settings*) t)
+           (setf (match-test *settings*)
+                 (lambda (str1 str2)
+                   (null (string= str1 str2)))))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -185,7 +195,7 @@ An option definition list is a list with the following elements:
 
 ;; (format stream "~&~@[~A:~]~A~%"
 ;;         (and (show-current-stream-name *settings)
-;;              (i-stream-name *settings*))
+;;              (inpout-stream-name *settings*))
 ;;         (if (show-match-count *settings*)
 ;;             (match-count *messages*)
 ;;             text))
@@ -197,17 +207,17 @@ An option definition list is a list with the following elements:
     (princ "~&" str)
     (when (show-current-stream-name *settings*)
       (format str (filename *messages*)
-              (i-stream-name *messages*)))
+              (input-stream-name *messages*)))
     (princ o-format str)
     (princ "~%" str)))
 
 (defun write-match (text)
-  (format (o-stream *messages*)
+  (format (output-stream *settings*)
           (setup-output (match-fmt *messages*))
           text))
 
 (defun write-count (count)
-  (format (o-stream *messages*)
+  (format (output-stream *settings*)
           (setup-output (count-fmt *messages*))
           count))
 
@@ -227,7 +237,7 @@ An option definition list is a list with the following elements:
     (write-match text)))
 
 (defun seek-pattern (pattern text)
-  (when (search pattern text)
+  (when (search pattern text :test (match-test *settings*))
     (unless *status* (setf *status* 0))
     (handle-match pattern text)))
 
@@ -256,12 +266,12 @@ An option definition list is a list with the following elements:
              (lambda (err)
                (when (ignore-file-errors *settings*)
                  (return)))))
-         (setf (i-stream-name *messages*) file)
+         (setf (input-stream-name *messages*) file)
          (with-open-file (stream file)
            (scan-stream pattern stream)))))
     (t
-     (setf (i-stream-name *messages*) "(standard-input)"
-           (o-stream *messages*) *standard-output*)
+     (setf (input-stream-name *messages*) "(standard-input)"
+           (output-stream *settings*) *standard-output*)
      (with-open-stream (stream *standard-input*)
        (scan-stream pattern stream))))
   (unless *status* (setf *status* 1))
