@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [8/40] options
+** TODO [9/40] options
 *** DONE --help
 Print a brief help message.
 
@@ -125,7 +125,7 @@ Stop reading the file after num matches.
 
 *** DONE -v, --invert-match
 Selected lines are those not matching any of the specified patterns.
-*** TODO -i, --ignore-case
+*** DONE -i, --ignore-case
 Perform case insensitive matching. By default, grep is case sensitive.
 
 *** TODO -o, --only-matching
