@@ -41,7 +41,8 @@
   (ignore-file-errors nil)
   (invert-match nil)
   (ignore-case nil)
-  (match-test #'string=))
+  (match-test #'string=)
+  (only-show-match nil))
 
 (defparameter *settings*
   (make-settings)
@@ -105,7 +106,12 @@
                (setf (match-test *settings*)
                      (lambda (str1 str2)
                        (null (string-equal str1 str2))))
-               (setf (match-test *settings*) #'string-equal)))))
+               (setf (match-test *settings*) #'string-equal))))
+   (list '("-o" "--only-matching")
+         'boolean
+         (lambda ()
+           "Show only matching part of the line"
+           (setf (only-show-match *settings*) t))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -245,7 +251,8 @@ An option definition list is a list with the following elements:
             (max-match-count *settings*))
       (count-match))
   (unless (show-match-count *settings*)
-    (write-match text)))
+    (write-match
+     (if (only-show-match *settings*) pattern text))))
 
 (defun seek-pattern (pattern text)
   (when (search pattern text :test (match-test *settings*))

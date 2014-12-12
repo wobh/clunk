@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [9/40] options
+** TODO [10/40] options
 *** DONE --help
 Print a brief help message.
 
@@ -128,7 +128,7 @@ Selected lines are those not matching any of the specified patterns.
 *** DONE -i, --ignore-case
 Perform case insensitive matching. By default, grep is case sensitive.
 
-*** TODO -o, --only-matching
+*** DONE -o, --only-matching
 Prints only the matching part of the lines.
 *** TODO -e pattern, --regexp=pattern
 Specify a pattern used during the search of the input: an input line
