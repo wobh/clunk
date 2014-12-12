@@ -9,7 +9,6 @@
 ;;;; DESCRIPTION:
 ;;;; A basic grep. Prints lines that match pattern to standard-output.
 
-
 ;;; Messages
 
 (defstruct (messages (:conc-name nil))
@@ -42,7 +41,8 @@
   (invert-match nil)
   (ignore-case nil)
   (match-test #'string=)
-  (only-show-match nil))
+  (only-show-match nil)
+  (patterns ()))
 
 (defparameter *settings*
   (make-settings)
@@ -111,7 +111,12 @@
          'boolean
          (lambda ()
            "Show only matching part of the line"
-           (setf (only-show-match *settings*) t))))
+           (setf (only-show-match *settings*) t)))
+   (list '("-e" "--regexp-pattern")
+         'string
+         (lambda (pattern)
+           "Specify a pattern used for search."
+           (pushnew pattern (patterns *settings*)))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -246,53 +251,66 @@ An option definition list is a list with the following elements:
     (= (max-match-count *settings*)
        (match-count *messages*))))
 
-(defun handle-match (pattern text)
+(defun handle-match (text)
   (when (or (show-match-count *settings*)
             (max-match-count *settings*))
       (count-match))
   (unless (show-match-count *settings*)
-    (write-match
-     (if (only-show-match *settings*) pattern text))))
+    (write-match text)))
 
-(defun seek-pattern (pattern text)
-  (when (search pattern text :test (match-test *settings*))
-    (unless *status* (setf *status* 0))
-    (handle-match pattern text)))
-
-(defun scan-stream (pattern stream)
+(defun seek-pattern (text)
   (loop
-    for line = (read-line stream nil)
-      then (read-line stream nil)
-    do (seek-pattern pattern line)
-    until (or (null line)
-              (max-matches-counted-p))
-    finally (when (show-match-count *settings*)
-              (write-count (match-count *messages*)))))
+     for pattern in (patterns *settings*)
+     do
+       (when (search pattern text :test (match-test *settings*))
+         (unless *status* (setf *status* 0))
+         (handle-match
+          (if (only-show-match *settings*) pattern text)))))
 
-(defun main (&optional pattern &rest files)
-  (unless pattern
-    (err-exit 2 (usage-str *messages*)))
-  (cond
-    (files
-     (unless (never-show-stream-name *settings*)
-       (when (or (< 1 (length files))
-                 (always-show-stream-name *settings*))
-         (setf (show-current-stream-name *settings*) t)))
-     (dolist (file files)
-       (handler-bind
-           ((file-error
-             (lambda (err)
-               (when (ignore-file-errors *settings*)
-                 (return)))))
-         (setf (input-stream-name *messages*) file)
-         (with-open-file (stream file)
-           (scan-stream pattern stream)))))
-    (t
-     (setf (input-stream-name *messages*) "(standard-input)"
-           (output-stream *settings*) *standard-output*)
-     (with-open-stream (stream *standard-input*)
-       (scan-stream pattern stream))))
+(defun scan-stream (stream)
+  (loop
+     for line = (read-line stream nil)
+     then (read-line stream nil)
+     do (seek-pattern line)
+     until (or (null line)
+               (max-matches-counted-p))
+     finally (when (show-match-count *settings*)
+               (write-count (match-count *messages*)))))
+
+(defun handle-file-error (err)
+  (when (ignore-file-errors *settings*)
+    (return)))
+
+(defun handle-files (files)
+  (unless (never-show-stream-name *settings*)
+    (when (or (< 1 (length files))
+              (always-show-stream-name *settings*))
+      (setf (show-current-stream-name *settings*) t)))
+  (dolist (file files)
+    (handler-bind ((file-error #'handle-file-error))
+      (setf (input-stream-name *messages*) file)
+      (with-open-file (stream file)
+        (scan-stream stream)))))
+
+(defun handle-stream ()
+  (setf (input-stream-name *messages*) "(standard-input)"
+        (output-stream *settings*) *standard-output*)
+  (with-open-stream (stream *standard-input*)
+    (scan-stream stream)))
+
+(defun main (&rest files)
+  (if files
+      (handle-files files)
+      (handle-stream))
   (unless *status* (setf *status* 1))
   (grep-exit))
 
-(apply #'main (getopts *args*))
+(defun handle-args (args)
+  (let ((args (getopts args)))
+    (unless (patterns *settings*)
+      (pushnew (pop args) (patterns *settings*)))
+    (unless (patterns *settings*)
+      (err-exit 2 (usage-str *messages*)))
+    args))
+
+(apply #'main (handle-args *args*))
