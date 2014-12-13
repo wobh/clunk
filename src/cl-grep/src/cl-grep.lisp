@@ -116,7 +116,13 @@
          'string
          (lambda (pattern)
            "Specify a pattern used for search."
-           (pushnew pattern (patterns *settings*)))))
+           (pushnew pattern (patterns *settings*))))
+   (list '("-q" "--quiet" "--silent")
+         'boolean
+         (lambda ()
+           "Quiet mode. Output nothing. Match once, status 0; match none, status 1."
+           (setf (output-stream *settings*) (make-broadcast-stream)
+                 (max-match-count *settings*) 1))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
