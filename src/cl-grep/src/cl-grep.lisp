@@ -117,6 +117,15 @@
          (lambda (pattern)
            "Specify a pattern used for search."
            (pushnew pattern (patterns *settings*))))
+   (list '("-f" "--file")
+         'string
+         (lambda (file)
+           "Read pattern(s) from file."
+           (with-open-file (stream file)
+             (loop
+                for pattern = (read-line stream nil)
+                until (null pattern)
+                do (pushnew pattern (patterns *settings*))))))
    (list '("-q" "--quiet" "--silent")
          'boolean
          (lambda ()
