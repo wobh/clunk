@@ -16,10 +16,11 @@
   (program "cl-grep")
   (usage-str "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
-  (filename "~A:")
+  (filename "~A~:[:~;~A~]")
   (match-fmt "~A")
   (count-fmt "~D")
   (match-count 0)
+  (null-byte (string (or #+clisp #\Null "\\0")))
   (input-stream-name nil))
 
 (defparameter *messages*
@@ -36,6 +37,7 @@
   (always-show-stream-name nil)
   (never-show-stream-name nil)
   (show-match-count nil)
+  (show-null-byte-after-stream-name nil)
   (max-match-count nil)
   (ignore-file-errors nil)
   (invert-match nil)
@@ -131,7 +133,12 @@
          (lambda ()
            "Quiet mode. Output nothing. Match once, status 0; match none, status 1."
            (setf (output-stream *settings*) (make-broadcast-stream)
-                 (max-match-count *settings*) 1))))
+                 (max-match-count *settings*) 1)))
+   (list '("--null")
+         'boolean
+         (lambda ()
+           "Print zero-byte after the file name"
+           (setf (show-null-byte-after-stream-name *settings*) t))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -230,12 +237,18 @@ An option definition list is a list with the following elements:
 ;;   (write-count (match-count *messages*)))
 ;; (princ (get-output-stream-string (o-stream *messages*)))
 
-;; (format stream "~&~@[~A:~]~A~%"
-;;         (and (show-current-stream-name *settings)
-;;              (inpout-stream-name *settings*))
-;;         (if (show-match-count *settings*)
-;;             (match-count *messages*)
-;;             text))
+;; (with-accessors ((snamep show-input-stream-name)
+;;                  (matchp show-match-count)
+;;                  (nullbp show-null-byte))
+;;     *settings*
+;;   (format stream "~&~@[~A~@[~A]:~]~A~%"
+;;           (when snamep
+;;             (input-stream-name *messages*))
+;;           (when nullbp
+;;             (null-char *messages*))
+;;           (if matchp
+;;               (match-count *messages*)
+;;               text)))
 
 ;; TODO streamline the control flow of printing.
 
@@ -243,8 +256,11 @@ An option definition list is a list with the following elements:
   (with-output-to-string (str)
     (princ "~&" str)
     (when (show-current-stream-name *settings*)
-      (format str (filename *messages*)
-              (input-stream-name *messages*)))
+      (format str
+              (filename *messages*)
+              (input-stream-name *messages*)
+              (show-null-byte-after-stream-name *settings*)
+              (null-byte *messages*)))
     (princ o-format str)
     (princ "~%" str)))
 
