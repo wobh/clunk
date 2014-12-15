@@ -16,9 +16,6 @@
   (program "cl-grep")
   (usage-str "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
-  (filename "~A~:[:~;~A~]")
-  (match-fmt "~A")
-  (count-fmt "~D")
   (match-count 0)
   (null-byte (string (or #+clisp #\Null "\\0")))
   (input-stream-name nil))
@@ -36,9 +33,11 @@
   (show-current-stream-name nil)
   (always-show-stream-name nil)
   (never-show-stream-name nil)
-  (show-match-count nil)
+  (only-show-stream-name nil)
   (show-null-byte-after-stream-name nil)
+  (show-match-count nil)
   (max-match-count nil)
+  (max-stream-match-count nil)
   (ignore-file-errors nil)
   (invert-match nil)
   (ignore-case nil)
@@ -137,8 +136,15 @@
    (list '("--null")
          'boolean
          (lambda ()
-           "Print zero-byte after the file name"
-           (setf (show-null-byte-after-stream-name *settings*) t))))
+           "Print zero-byte after the file name."
+           (setf (show-null-byte-after-stream-name *settings*) t)))
+   (list '("-l" "--files-with-matches")
+         'boolean
+         (lambda ()
+           "Print only names of files with matches"
+           (setf (max-stream-match-count *settings*) 1
+                 (show-current-stream-name *settings*) 1
+                 (only-show-stream-name *settings*) t))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -211,6 +217,7 @@ An option definition list is a list with the following elements:
                 (let ((arg (if optchain (subseq optchain 1) (pop args))))
                   (funcall func arg))))))))
 
+
 (defparameter *args*
   (or #+clisp EXT:*ARGS* nil)
   "Arguments passed to CL-Grep.")
@@ -252,26 +259,46 @@ An option definition list is a list with the following elements:
 
 ;; TODO streamline the control flow of printing.
 
-(defun setup-output (o-format)
+(defun setup-output ()
   (with-output-to-string (str)
     (princ "~&" str)
     (when (show-current-stream-name *settings*)
-      (format str
-              (filename *messages*)
-              (input-stream-name *messages*)
-              (show-null-byte-after-stream-name *settings*)
-              (null-byte *messages*)))
-    (princ o-format str)
+      (princ (input-stream-name *messages*) str)
+      (when (show-null-byte-after-stream-name *settings*)
+        (princ (null-byte *messages*) str)))
+    (unless (only-show-stream-name *settings*)
+      (when (show-current-stream-name *settings*)
+        (unless (show-null-byte-after-stream-name *settings*)
+          (princ ":" str)))
+      (cond
+        ((show-match-count *settings*)
+         (princ "~D" str))
+        (t
+         ;; (when (show-line-number *settings*) (princ "~D:" str))
+         ;; (when (show-byte-offset *settings*) (princ "~D:" str))
+         (princ "~A" str))))
     (princ "~%" str)))
+
+;; (defun setup-output (o-format)
+;;   (with-output-to-string (str)
+;;     (princ "~&" str)
+;;     (when (show-current-stream-name *settings*)
+;;       (format (output-stream *settings*)
+;;               (filename *messages*)
+;;               (input-stream-name *messages*)
+;;               (show-null-byte-after-stream-name *settings*)
+;;               (null-byte *messages*)))
+;;     (princ o-format str)
+;;     (princ "~%" str)))
 
 (defun write-match (text)
   (format (output-stream *settings*)
-          (setup-output (match-fmt *messages*))
+          (setup-output)
           text))
 
 (defun write-count (count)
   (format (output-stream *settings*)
-          (setup-output (count-fmt *messages*))
+          (setup-output)
           count))
 
 (defun count-match ()
@@ -282,28 +309,44 @@ An option definition list is a list with the following elements:
     (= (max-match-count *settings*)
        (match-count *messages*))))
 
+(defun write-stream ()
+  (format (output-stream *settings*)
+          (setup-output)))
+
 (defun handle-match (text)
   (when (or (show-match-count *settings*)
             (max-match-count *settings*))
       (count-match))
   (unless (show-match-count *settings*)
-    (write-match text)))
+    (if (only-show-stream-name *settings*)
+        (write-stream)
+        (write-match text))))
 
 (defun seek-pattern (text)
   (loop
      for pattern in (patterns *settings*)
+     with count = 0
      do
        (when (search pattern text :test (match-test *settings*))
          (unless *status* (setf *status* 0))
+         (incf count)
          (handle-match
-          (if (only-show-match *settings*) pattern text)))))
+          (if (only-show-match *settings*) pattern text)))
+     finally (return count)))
+
+(defun max-stream-matches-counted-p (match-stream-count)
+  (when (max-stream-match-count *settings*)
+    (<= (max-stream-match-count *settings*)
+        match-stream-count)))
 
 (defun scan-stream (stream)
   (loop
      for line = (read-line stream nil)
      then (read-line stream nil)
-     do (seek-pattern line)
+     with count = 0
+     do (incf count (seek-pattern line))
      until (or (null line)
+               (max-stream-matches-counted-p count)
                (max-matches-counted-p))
      finally (when (show-match-count *settings*)
                (write-count (match-count *messages*)))))

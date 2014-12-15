@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [14/38] options
+** TODO [15/38] options
 *** DONE --help                                                        :help:
 Print a brief help message.
 
@@ -146,7 +146,7 @@ Read one or more newline separated patterns from file.  Empty pattern
 lines match every input line.  Newlines are not considered part of a
 pattern. If file is empty, nothing is matched.
 
-*** TODO -l, --files-with-matches                        :output:match:files:
+*** DONE -l, --files-with-matches                        :output:match:files:
 Only the names of files containing selected lines are written to
 standard output. `grep' will only search a file until a match has been
 found, making searches potentially less expensive. Pathnames are
