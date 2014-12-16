@@ -97,18 +97,21 @@
            "Show only lines that do not match patterns."
            (setf (invert-match *settings*) t)
            (setf (match-test *settings*)
-                 (lambda (str1 str2)
-                   (null (string= str1 str2))))))
+                 (if (ignore-case *settings*)
+                     (lambda (str1 str2)
+                       (null (string-equal str1 str2)))
+                     (lambda (str1 str2)
+                       (null (string= str1 str2)))))))
    (list '("-i" "--ignore-case")
          'boolean
          (lambda ()
            "Ignore case in matches."
            (setf (ignore-case *settings*) nil)
-           (if (invert-match *settings*)
-               (setf (match-test *settings*)
+           (setf (match-test *settings*)
+                 (if (invert-match *settings*)
                      (lambda (str1 str2)
-                       (null (string-equal str1 str2))))
-               (setf (match-test *settings*) #'string-equal))))
+                       (null (string-equal str1 str2)))
+                     #'string-equal))))
    (list '("-o" "--only-matching")
          'boolean
          (lambda ()
