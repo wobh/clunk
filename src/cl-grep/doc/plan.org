@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [15/38] options
+** TODO [16/38] options
 *** DONE --help                                                        :help:
 Print a brief help message.
 
@@ -153,7 +153,7 @@ found, making searches potentially less expensive. Pathnames are
 listed once per file searched. If the standard input is searched, the
 string ``(standard input)'' is written.
 
-*** TODO -L, --files-without-match                       :output:match:files:
+*** DONE -L, --files-without-match                       :output:match:files:
 Only the names of files not containing selected lines are written to
 standard output. Pathnames are listed once per file searched. If the
 standard input is searched, the string ``(standard input)'' is

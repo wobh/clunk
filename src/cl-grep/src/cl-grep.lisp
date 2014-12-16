@@ -34,6 +34,7 @@
   (always-show-stream-name nil)
   (never-show-stream-name nil)
   (only-show-stream-name nil)
+  (only-show-stream-names-without-matches nil)
   (show-null-byte-after-stream-name nil)
   (show-match-count nil)
   (max-match-count nil)
@@ -141,10 +142,19 @@
    (list '("-l" "--files-with-matches")
          'boolean
          (lambda ()
-           "Print only names of files with matches"
+           "Print only names of files with matches."
            (setf (max-stream-match-count *settings*) 1
-                 (show-current-stream-name *settings*) 1
-                 (only-show-stream-name *settings*) t))))
+                 (show-current-stream-name *settings*) t
+                 (only-show-stream-name *settings*) t
+                 (only-show-stream-names-without-matches *settings*) nil)))
+   (list '("-L" "--files-without-matches")
+         'boolean
+         (lambda ()
+           "Print only names of files without matches."
+           (setf (max-stream-match-count *settings*) 1
+                 (show-current-stream-name *settings*) t
+                 (only-show-stream-name *settings*) t
+                 (only-show-stream-names-without-matches *settings*) t))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -314,13 +324,14 @@ An option definition list is a list with the following elements:
           (setup-output)))
 
 (defun handle-match (text)
-  (when (or (show-match-count *settings*)
-            (max-match-count *settings*))
+  (unless (only-show-stream-names-without-matches *settings*)
+    (when (or (show-match-count *settings*)
+              (max-match-count *settings*))
       (count-match))
-  (unless (show-match-count *settings*)
-    (if (only-show-stream-name *settings*)
-        (write-stream)
-        (write-match text))))
+    (unless (show-match-count *settings*)
+      (if (only-show-stream-name *settings*)
+          (write-stream)
+          (write-match text)))))
 
 (defun seek-pattern (text)
   (loop
@@ -348,8 +359,11 @@ An option definition list is a list with the following elements:
      until (or (null line)
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
-     finally (when (show-match-count *settings*)
-               (write-count (match-count *messages*)))))
+     finally (cond ((show-match-count *settings*)
+                    (write-count (match-count *messages*)))
+                   ((only-show-stream-names-without-matches *settings*)
+                    (when (zerop count)
+                      (write-stream))))))
 
 (defun handle-file-error (err)
   (when (ignore-file-errors *settings*)
