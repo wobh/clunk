@@ -27,6 +27,38 @@
 
 ;;; Settings
 
+(defmacro make-matcher (function &rest options)
+  "Returns a function of two arguments to match first argument to second."
+  (let ((pattern (gensym "PATTERN"))
+        (text (gensym "TEXT")))
+    `(lambda (,pattern ,text)
+       "Matches first argument with second."
+       (,function ,pattern ,text ,@options))))
+
+(defun setup-matcher (&key invert-match ignore-case line-match)
+  (cond ((and (not invert-match) (not ignore-case) (not line-match))
+         (make-matcher search :test #'string=))
+        ((and invert-match (not ignore-case) (not line-match))
+         (complement (make-matcher search :test #'string=)))
+        ((and (not invert-match) ignore-case (not line-match))
+         (make-matcher search :test #'string-equal))
+        ((and invert-match ignore-case (not line-match))
+         (complement (make-matcher search :test #'string-equal)))
+        ((and (not invert-match) (not ignore-case) line-match)
+         (make-matcher string=))
+        ((and invert-match (not ignore-case) line-match)
+         (complement (make-matcher string=)))
+        ((and (not invert-match) ignore-case line-match)
+         (make-matcher string-equal))
+        ((and invert-match ignore-case line-match)
+         (complement (make-matcher string-equal)))))
+
+(defun after-getopts ()
+  (setf (match-test *settings*)
+        (setup-matcher :invert-match (invert-match *settings*)
+                       :ignore-case (ignore-case *settings*)
+                       :line-match (line-match *settings*))))
+
 (defstruct (settings (:conc-name nil))
   "Settings object for accessing options and parameters"
   (output-stream *standard-output*)
@@ -42,7 +74,8 @@
   (ignore-file-errors nil)
   (invert-match nil)
   (ignore-case nil)
-  (match-test #'string=)
+  (line-match nil)
+  (match-test nil)
   (only-show-match nil)
   (patterns ()))
 
@@ -52,6 +85,7 @@
 
 
 ;;; Options
+
 
 (defparameter *options*
   (list
@@ -95,23 +129,17 @@
          'boolean
          (lambda ()
            "Show only lines that do not match patterns."
-           (setf (invert-match *settings*) t)
-           (setf (match-test *settings*)
-                 (if (ignore-case *settings*)
-                     (lambda (str1 str2)
-                       (null (string-equal str1 str2)))
-                     (lambda (str1 str2)
-                       (null (string= str1 str2)))))))
+           (setf (invert-match *settings*) t)))
    (list '("-i" "--ignore-case")
          'boolean
          (lambda ()
            "Ignore case in matches."
-           (setf (ignore-case *settings*) nil)
-           (setf (match-test *settings*)
-                 (if (invert-match *settings*)
-                     (lambda (str1 str2)
-                       (null (string-equal str1 str2)))
-                     #'string-equal))))
+           (setf (ignore-case *settings*) t)))
+   (list '("-x" "--line-regexp")
+         'boolean
+         (lambda ()
+           "Match on whole input line."
+           (setf (line-match *settings*) t)))
    (list '("-o" "--only-matching")
          'boolean
          (lambda ()
@@ -212,24 +240,26 @@ An option definition list is a list with the following elements:
      with optchain
      with optvalue
      do
-       (unless args (return))
+       (unless args (loop-finish))
        (setf (values opt optchain optvalue)
              (getopt (or optchain (pop args))))
        (when optvalue (push optvalue args))
        (cond
          ((and (null opt) (null optchain))
-          (return args))
+          (loop-finish))
          ((and (null opt) (stringp optchain))
           (push optchain args)
-          (return args))
+          (loop-finish))
          ((stringp opt)
           (destructuring-bind (type func)
               (rest (find-option opt options))
             (if (eq type 'boolean)
                 (funcall func)
                 (let ((arg (if optchain (subseq optchain 1) (pop args))))
-                  (funcall func arg))))))))
-
+                  (funcall func arg))))))
+     finally (progn
+               (after-getopts)
+               (return args))))
 
 (defparameter *args*
   (or #+clisp EXT:*ARGS* nil)
@@ -341,7 +371,7 @@ An option definition list is a list with the following elements:
      for pattern in (patterns *settings*)
      with count = 0
      do
-       (when (search pattern text :test (match-test *settings*))
+       (when (funcall (match-test *settings*) pattern text)
          (unless *status* (setf *status* 0))
          (incf count)
          (handle-match
@@ -358,10 +388,10 @@ An option definition list is a list with the following elements:
      for line = (read-line stream nil)
      then (read-line stream nil)
      with count = 0
-     do (incf count (seek-pattern line))
      until (or (null line)
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
+     do (incf count (seek-pattern line))
      finally (cond ((show-match-count *settings*)
                     (write-count (match-count *messages*)))
                    ((only-show-stream-names-without-matches *settings*)
