@@ -36,29 +36,32 @@
        "Matches first argument with second."
        (,function ,pattern ,text ,@options))))
 
-(defun setup-matcher (&key invert-match ignore-case line-match)
-  (cond ((and (not invert-match) (not ignore-case) (not line-match))
+(defun setup-matcher (&key fixed-string ignore-case line-match)
+  (cond ((and (not fixed-string) (not ignore-case) (not line-match))
          (make-matcher search :test #'string=))
-        ((and invert-match (not ignore-case) (not line-match))
-         (complement (make-matcher search :test #'string=)))
-        ((and (not invert-match) ignore-case (not line-match))
+        ((and fixed-string (not ignore-case) (not line-match))
+         (identity (make-matcher search :test #'string=)))
+        ((and (not fixed-string) ignore-case (not line-match))
          (make-matcher search :test #'string-equal))
-        ((and invert-match ignore-case (not line-match))
-         (complement (make-matcher search :test #'string-equal)))
-        ((and (not invert-match) (not ignore-case) line-match)
+        ((and fixed-string ignore-case (not line-match))
+         (identity (make-matcher search :test #'string-equal)))
+        ((and (not fixed-string) (not ignore-case) line-match)
          (make-matcher string=))
-        ((and invert-match (not ignore-case) line-match)
-         (complement (make-matcher string=)))
-        ((and (not invert-match) ignore-case line-match)
+        ((and fixed-string (not ignore-case) line-match)
+         (identity (make-matcher string=)))
+        ((and (not fixed-string) ignore-case line-match)
          (make-matcher string-equal))
-        ((and invert-match ignore-case line-match)
-         (complement (make-matcher string-equal)))))
+        ((and fixed-string ignore-case line-match)
+         (identity (make-matcher string-equal)))))
 
 (defun after-getopts ()
   (setf (match-test *settings*)
-        (setup-matcher :invert-match (invert-match *settings*)
-                       :ignore-case (ignore-case *settings*)
-                       :line-match (line-match *settings*))))
+        (funcall (if (invert-match *settings*)
+                     #'complement
+                     #'identity)
+                 (setup-matcher :fixed-string nil
+                                :ignore-case (ignore-case *settings*)
+                                :line-match (line-match *settings*)))))
 
 (defstruct (settings (:conc-name nil))
   "Settings object for accessing options and parameters"
@@ -127,6 +130,12 @@
          (lambda ()
            "Silent mode. Suppress error messages from unreadable or nonexistent files."
            (setf (ignore-file-errors *settings*) t)))
+   (list '("-F" "--fixed-string")
+         'boolean
+         (lambda ()
+           "Use fixed string for matching instead of regexp. NOOP"
+           ;; TODO: setup regexp patterns
+           (values)))
    (list '("-v" "--invert-match")
          'boolean
          (lambda ()
