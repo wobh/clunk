@@ -17,6 +17,7 @@
   (usage-str "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
   (match-count 0)
+  (stream-name-match-separator #\:)
   (null-byte (string (or #+clisp #\Null "\\0")))
   (input-stream-name nil))
 
@@ -170,7 +171,9 @@
          'boolean
          (lambda ()
            "Print zero-byte after the file name."
-           (setf (show-null-byte-after-stream-name *settings*) t)))
+           (setf (show-null-byte-after-stream-name *settings*) t)
+           (setf (stream-name-match-separator *messages*)
+                 (null-byte *messages*))))
    (list '("-l" "--files-with-matches")
          'boolean
          (lambda ()
@@ -319,11 +322,11 @@ An option definition list is a list with the following elements:
     (when (show-current-stream-name *settings*)
       (princ (input-stream-name *messages*) str)
       (when (show-null-byte-after-stream-name *settings*)
-        (princ (null-byte *messages*) str)))
+        (princ (stream-name-match-separator *messages*) str)))
     (unless (only-show-stream-name *settings*)
       (when (show-current-stream-name *settings*)
         (unless (show-null-byte-after-stream-name *settings*)
-          (princ ":" str)))
+          (princ (stream-name-match-separator *messages*) str)))
       (cond
         ((show-match-count *settings*)
          (princ "~D" str))
