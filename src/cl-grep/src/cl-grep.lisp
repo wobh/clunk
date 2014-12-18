@@ -68,6 +68,7 @@
   (only-show-stream-name nil)
   (only-show-stream-names-without-matches nil)
   (show-null-byte-after-stream-name nil)
+  (show-match-line-number nil)
   (show-match-count nil)
   (max-match-count nil)
   (max-stream-match-count nil)
@@ -177,7 +178,8 @@
            (setf (max-stream-match-count *settings*) 1
                  (show-current-stream-name *settings*) t
                  (only-show-stream-name *settings*) t
-                 (only-show-stream-names-without-matches *settings*) nil)))
+                 (only-show-stream-names-without-matches *settings*) nil
+                 (show-match-line-number *settings*) nil)))
    (list '("-L" "--files-without-matches")
          'boolean
          (lambda ()
@@ -185,7 +187,16 @@
            (setf (max-stream-match-count *settings*) 1
                  (show-current-stream-name *settings*) t
                  (only-show-stream-name *settings*) t
-                 (only-show-stream-names-without-matches *settings*) t))))
+                 (only-show-stream-names-without-matches *settings*) t
+                 (show-match-line-number *settings*) nil)))
+   (list '("-n" "--line-number")
+         'boolean
+         (lambda ()
+           "Show line number of match."
+           (unless (or (show-match-count *settings*)
+                       (only-show-stream-name *settings*)
+                       (only-show-stream-names-without-matches *settings*))
+             (setf (show-match-line-number *settings*) t)))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -317,8 +328,9 @@ An option definition list is a list with the following elements:
         ((show-match-count *settings*)
          (princ "~D" str))
         (t
-         ;; (when (show-line-number *settings*) (princ "~D:" str))
-         ;; (when (show-byte-offset *settings*) (princ "~D:" str))
+         (when (show-match-line-number *settings*)
+           (princ "~D:" str))
+         ;; (when (show-match-byte-offset *settings*) (princ "~D:" str))
          (princ "~A" str))))
     (princ "~%" str)))
 
@@ -334,10 +346,11 @@ An option definition list is a list with the following elements:
 ;;     (princ o-format str)
 ;;     (princ "~%" str)))
 
-(defun write-match (text)
+(defun write-match (text &key line-number)
   (format (output-stream *settings*)
           (setup-output)
-          text))
+          (or line-number text)
+          (and line-number text)))
 
 (defun write-count (count)
   (format (output-stream *settings*)
@@ -356,7 +369,7 @@ An option definition list is a list with the following elements:
   (format (output-stream *settings*)
           (setup-output)))
 
-(defun handle-match (text)
+(defun handle-match (text &key line-number)
   (unless (only-show-stream-names-without-matches *settings*)
     (when (or (show-match-count *settings*)
               (max-match-count *settings*))
@@ -364,9 +377,11 @@ An option definition list is a list with the following elements:
     (unless (show-match-count *settings*)
       (if (only-show-stream-name *settings*)
           (write-stream)
-          (write-match text)))))
+          (write-match text
+                       :line-number (and (show-match-line-number *settings*)
+                                         line-number))))))
 
-(defun seek-pattern (text)
+(defun seek-pattern (text &key line-number)
   (loop
      for pattern in (patterns *settings*)
      with count = 0
@@ -375,7 +390,8 @@ An option definition list is a list with the following elements:
          (unless *status* (setf *status* 0))
          (incf count)
          (handle-match
-          (if (only-show-match *settings*) pattern text)))
+          (if (only-show-match *settings*) pattern text)
+          :line-number line-number))
      finally (return count)))
 
 (defun max-stream-matches-counted-p (match-stream-count)
@@ -385,13 +401,14 @@ An option definition list is a list with the following elements:
 
 (defun scan-stream (stream)
   (loop
+     for line-number = 1 then (incf line-number)
      for line = (read-line stream nil)
      then (read-line stream nil)
      with count = 0
      until (or (null line)
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
-     do (incf count (seek-pattern line))
+     do (incf count (seek-pattern line :line-number line-number))
      finally (cond ((show-match-count *settings*)
                     (write-count (match-count *messages*)))
                    ((only-show-stream-names-without-matches *settings*)

@@ -90,7 +90,7 @@ EXIT STATUS
 *** references
 - http://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
 
-** TODO [17/38] options
+** TODO [18/38] options
 *** DONE --help                                                        :help:
 Print a brief help message.
 
@@ -170,7 +170,7 @@ written.
 *** DONE --null                                                :output:files:
 Prints a zero-byte after the file name.
 
-*** TODO -n, --line-number                                           :output:
+*** DONE -n, --line-number                                           :output:
 Each output line is preceded by its relative line number in the file,
 starting at line 1. The line number counter is reset for each file
 processed. This option is ignored if -c, -L, -l, or -q is specified.
