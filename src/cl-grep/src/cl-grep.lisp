@@ -73,6 +73,7 @@
   (only-show-stream-names-without-matches nil)
   (show-null-byte-after-stream-name nil)
   (show-match-line-number nil)
+  (show-match-position nil)
   (show-match-count nil)
   (max-match-count nil)
   (max-stream-match-count nil)
@@ -208,7 +209,12 @@
            (unless (or (show-match-count *settings*)
                        (only-show-stream-name *settings*)
                        (only-show-stream-names-without-matches *settings*))
-             (setf (show-match-line-number *settings*) t)))))
+             (setf (show-match-line-number *settings*) t))))
+   (list '("-b" "--byte-offset")
+         'boolean
+         (lambda ()
+           "Show byte offset of match (actually file position)"
+           (setf (show-match-position *settings*) t))))
   "Options and parameters.
 
 An option definition list is a list with the following elements:
@@ -342,9 +348,12 @@ An option definition list is a list with the following elements:
         (t
          (when (show-match-line-number *settings*)
            (princ "~D:" str))
-         ;; (when (show-match-byte-offset *settings*) (princ "~D:" str))
+         (when (show-match-position *settings*)
+           (princ "~D:" str))
          (princ "~A" str))))
     (princ "~%" str)))
+
+;; FIXME: define output format once.
 
 ;; (defun setup-output (o-format)
 ;;   (with-output-to-string (str)
@@ -358,11 +367,12 @@ An option definition list is a list with the following elements:
 ;;     (princ o-format str)
 ;;     (princ "~%" str)))
 
-(defun write-match (text &key line-number)
+(defun write-match (text &key line-number match-position)
   (format (output-stream *settings*)
           (setup-output)
-          (or line-number text)
-          (and line-number text)))
+          (or line-number (or match-position text))
+          (and (or line-number match-position) (or match-position text))
+          (and (and line-number match-position) text)))
 
 (defun write-count (count)
   (format (output-stream *settings*)
@@ -381,7 +391,7 @@ An option definition list is a list with the following elements:
   (format (output-stream *settings*)
           (setup-output)))
 
-(defun handle-match (text &key line-number)
+(defun handle-match (text &key line-number match-position)
   (unless (only-show-stream-names-without-matches *settings*)
     (when (or (show-match-count *settings*)
               (max-match-count *settings*))
@@ -391,19 +401,23 @@ An option definition list is a list with the following elements:
           (write-stream)
           (write-match text
                        :line-number (and (show-match-line-number *settings*)
-                                         line-number))))))
+                                         line-number)
+                       :match-position (and (show-match-position *settings*)
+                                            match-position))))))
 
-(defun seek-pattern (text &key line-number)
+(defun seek-pattern (text &key line-number line-position)
   (loop
      for pattern in (patterns *settings*)
+     with match-position = nil
      with count = 0
+     while (null match-position)
      do
-       (when (funcall (match-test *settings*) pattern text)
-         (unless *status* (setf *status* 0))
-         (incf count)
-         (handle-match
-          (if (only-show-match *settings*) pattern text)
-          :line-number line-number))
+        (when (setf match-position (funcall (match-test *settings*) pattern text))
+          (unless *status* (setf *status* 0))
+          (incf count)
+          (handle-match (if (only-show-match *settings*) pattern text)
+                        :line-number line-number
+                        :match-position (+ line-position match-position)))
      finally (return count)))
 
 (defun max-stream-matches-counted-p (match-stream-count)
@@ -417,10 +431,14 @@ An option definition list is a list with the following elements:
      for line = (read-line stream nil)
      then (read-line stream nil)
      with count = 0
+     with position = 0
      until (or (null line)
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
-     do (incf count (seek-pattern line :line-number line-number))
+     do (when (seek-pattern line
+                            :line-number line-number
+                            :line-position (file-position stream))
+          (incf count))
      finally (cond ((show-match-count *settings*)
                     (write-count (match-count *messages*)))
                    ((only-show-stream-names-without-matches *settings*)
