@@ -17,6 +17,8 @@
   (usage-str "usage: cl-grep [pattern] [file]")
   (version "cl-grep: 0.0.1")
   (match-count 0)
+  (output-format nil)
+  (match-writer nil)
   (stream-name-match-separator #\:)
   (null-byte (string (or #+clisp #\Null "\\0")))
   (input-stream-name nil))
@@ -27,6 +29,36 @@
 
 
 ;;; Settings
+
+(defstruct (settings (:conc-name nil))
+  "Settings object for accessing options and parameters"
+  (output-stream *standard-output*)
+  (show-current-stream-name nil)
+  (always-show-stream-name nil)
+  (never-show-stream-name nil)
+  (only-show-stream-name nil)
+  (only-show-stream-names-without-matches nil)
+  (show-null-byte-after-stream-name nil)
+  (show-match-line-number nil)
+  (show-match-position nil)
+  (show-match-count nil)
+  (max-match-count nil)
+  (max-stream-match-count nil)
+  (ignore-file-errors nil)
+  (invert-match nil)
+  (ignore-case nil)
+  (line-match nil)
+  (match-test nil)
+  (match-handler nil)
+  (only-show-match nil)
+  (patterns ()))
+
+(defparameter *settings*
+  (make-settings)
+  "Settings and behavior switches")
+
+
+;;; Definitions
 
 (defmacro make-matcher (function &rest options)
   "Returns a function of two arguments to match first argument to second."
@@ -54,6 +86,83 @@
         ((and fixed-string ignore-case line-match)
          (identity (make-matcher string-equal)))))
 
+(defun setup-output-format ()
+  (with-output-to-string (str)
+    (princ "~&" str)
+    (when (show-current-stream-name *settings*)
+      (princ (input-stream-name *messages*) str)
+      (when (show-null-byte-after-stream-name *settings*)
+        (princ (stream-name-match-separator *messages*) str)))
+    (unless (only-show-stream-name *settings*)
+      (when (show-current-stream-name *settings*)
+        (unless (show-null-byte-after-stream-name *settings*)
+          (princ (stream-name-match-separator *messages*) str)))
+      (cond
+        ((show-match-count *settings*)
+         (princ "~D" str))
+        (t
+         (when (show-match-line-number *settings*)
+           (princ "~D:" str))
+         (when (show-match-position *settings*)
+           (princ "~D:" str))
+         (princ "~A" str))))
+    (princ "~%" str)))
+
+(defun make-match-writer ()
+  (cond
+    ((only-show-stream-name *settings*)
+     (lambda ()
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               (input-stream-name *messages*))))
+    ((show-match-count *settings*)
+     (lambda (match-count)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               match-count)))
+    ((and (show-line-number *settings*)
+          (show-match-position *settings*))
+     (lambda (line-number match-position text)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               line-number
+               match-postion
+               match-text)))
+    ((or (show-line-number *settings*)
+         (show-match-position *settings*))
+     (lambda (marker text)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               match-marker
+               match-text)))
+    (t
+     (lambda (match-text)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               match-text)))))
+
+(defun setup-match-handler ()
+ (unless (only-show-stream-names-without-matches *settings*)
+   (when (or (show-match-count *settings*)
+             (max-match-count *settings*))
+     (lambda () (count-match)))
+   (unless (show-match-count *settings*)
+     (cond ((only-show-stream-name *settings*)
+            (lambda () (write-match)))
+           ((and (show-match-line-number *settings*)
+                 (show-match-position *settings*))
+            (lambda (match-text match-line match-position)
+              (write-match match-text match-line match-position)))
+           ((show-match-line-number *settings*)
+            (lambda (match-text match-line)
+              (write-match match-text match-line)))
+           ((show-match-postion *settings*)
+            (lambda (match-text match-position)
+              (write-match match-text match-position)))
+           (t
+            (lambda (match-text)
+              (write-match match-text)))))))
+
 (defun after-getopts ()
   (setf (match-test *settings*)
         (funcall (if (invert-match *settings*)
@@ -61,37 +170,14 @@
                      #'identity)
                  (setup-matcher :fixed-string nil
                                 :ignore-case (ignore-case *settings*)
-                                :line-match (line-match *settings*)))))
+                                :line-match (line-match *settings*)))
+        (output-format *messages*) (setup-output-format)
+        (match-writer *messages*) (setup-match-writer)
+        (match-handler *settings*) (setup-match-handler)))
 
-(defstruct (settings (:conc-name nil))
-  "Settings object for accessing options and parameters"
-  (output-stream *standard-output*)
-  (show-current-stream-name nil)
-  (always-show-stream-name nil)
-  (never-show-stream-name nil)
-  (only-show-stream-name nil)
-  (only-show-stream-names-without-matches nil)
-  (show-null-byte-after-stream-name nil)
-  (show-match-line-number nil)
-  (show-match-position nil)
-  (show-match-count nil)
-  (max-match-count nil)
-  (max-stream-match-count nil)
-  (ignore-file-errors nil)
-  (invert-match nil)
-  (ignore-case nil)
-  (line-match nil)
-  (match-test nil)
-  (only-show-match nil)
-  (patterns ()))
-
-(defparameter *settings*
-  (make-settings)
-  "Settings and behavior switches")
 
 
 ;;; Options
-
 
 (defparameter *options*
   (list
@@ -312,72 +398,10 @@ An option definition list is a list with the following elements:
 
 ;;; CL-Grep
 
-;; (when (show-match-count *settings*)
-;;   (write-count (match-count *messages*)))
-;; (princ (get-output-stream-string (o-stream *messages*)))
-
-;; (with-accessors ((snamep show-input-stream-name)
-;;                  (matchp show-match-count)
-;;                  (nullbp show-null-byte))
-;;     *settings*
-;;   (format stream "~&~@[~A~@[~A]:~]~A~%"
-;;           (when snamep
-;;             (input-stream-name *messages*))
-;;           (when nullbp
-;;             (null-char *messages*))
-;;           (if matchp
-;;               (match-count *messages*)
-;;               text)))
-
 ;; TODO streamline the control flow of printing.
 
-(defun setup-output ()
-  (with-output-to-string (str)
-    (princ "~&" str)
-    (when (show-current-stream-name *settings*)
-      (princ (input-stream-name *messages*) str)
-      (when (show-null-byte-after-stream-name *settings*)
-        (princ (stream-name-match-separator *messages*) str)))
-    (unless (only-show-stream-name *settings*)
-      (when (show-current-stream-name *settings*)
-        (unless (show-null-byte-after-stream-name *settings*)
-          (princ (stream-name-match-separator *messages*) str)))
-      (cond
-        ((show-match-count *settings*)
-         (princ "~D" str))
-        (t
-         (when (show-match-line-number *settings*)
-           (princ "~D:" str))
-         (when (show-match-position *settings*)
-           (princ "~D:" str))
-         (princ "~A" str))))
-    (princ "~%" str)))
-
-;; FIXME: define output format once.
-
-;; (defun setup-output (o-format)
-;;   (with-output-to-string (str)
-;;     (princ "~&" str)
-;;     (when (show-current-stream-name *settings*)
-;;       (format (output-stream *settings*)
-;;               (filename *messages*)
-;;               (input-stream-name *messages*)
-;;               (show-null-byte-after-stream-name *settings*)
-;;               (null-byte *messages*)))
-;;     (princ o-format str)
-;;     (princ "~%" str)))
-
-(defun write-match (text &key line-number match-position)
-  (format (output-stream *settings*)
-          (setup-output)
-          (or line-number (or match-position text))
-          (and (or line-number match-position) (or match-position text))
-          (and (and line-number match-position) text)))
-
-(defun write-count (count)
-  (format (output-stream *settings*)
-          (setup-output)
-          count))
+(defun write-match (&rest args)
+  (funcall (match-writer *messages*) args))
 
 (defun count-match ()
   (incf (match-count *messages*)))
@@ -387,23 +411,8 @@ An option definition list is a list with the following elements:
     (= (max-match-count *settings*)
        (match-count *messages*))))
 
-(defun write-stream ()
-  (format (output-stream *settings*)
-          (setup-output)))
-
-(defun handle-match (text &key line-number match-position)
-  (unless (only-show-stream-names-without-matches *settings*)
-    (when (or (show-match-count *settings*)
-              (max-match-count *settings*))
-      (count-match))
-    (unless (show-match-count *settings*)
-      (if (only-show-stream-name *settings*)
-          (write-stream)
-          (write-match text
-                       :line-number (and (show-match-line-number *settings*)
-                                         line-number)
-                       :match-position (and (show-match-position *settings*)
-                                            match-position))))))
+(defun handle-match (&args args)
+  (funcall (match-handler *settings*) (remove-if #'null args)))
 
 (defun seek-pattern (text &key line-number line-position)
   (loop
@@ -416,8 +425,11 @@ An option definition list is a list with the following elements:
           (unless *status* (setf *status* 0))
           (incf count)
           (handle-match (if (only-show-match *settings*) pattern text)
-                        :line-number line-number
-                        :match-position (+ line-position match-position)))
+                        (when (show-match-line-number *settings*) line-number)
+                        (when (show-match-position *settings*)
+                          (if (typep match-position 'integer)
+                              (+ line-position match-position)
+                              line-position))))
      finally (return count)))
 
 (defun max-stream-matches-counted-p (match-stream-count)
