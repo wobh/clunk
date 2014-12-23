@@ -120,17 +120,17 @@
        (format (output-stream *settings*)
                (output-format *messages*)
                match-count)))
-    ((and (show-line-number *settings*)
+    ((and (show-match-line-number *settings*)
           (show-match-position *settings*))
-     (lambda (line-number match-position text)
+     (lambda (match-text line-number match-position)
        (format (output-stream *settings*)
                (output-format *messages*)
                line-number
                match-postion
                match-text)))
-    ((or (show-line-number *settings*)
+    ((or (show-match-line-number *settings*)
          (show-match-position *settings*))
-     (lambda (marker text)
+     (lambda (match-text match-marker)
        (format (output-stream *settings*)
                (output-format *messages*)
                match-marker
@@ -141,27 +141,27 @@
                (output-format *messages*)
                match-text)))))
 
-(defun setup-match-handler ()
- (unless (only-show-stream-names-without-matches *settings*)
-   (when (or (show-match-count *settings*)
-             (max-match-count *settings*))
-     (lambda () (count-match)))
-   (unless (show-match-count *settings*)
-     (cond ((only-show-stream-name *settings*)
-            (lambda () (write-match)))
-           ((and (show-match-line-number *settings*)
-                 (show-match-position *settings*))
-            (lambda (match-text match-line match-position)
-              (write-match match-text match-line match-position)))
-           ((show-match-line-number *settings*)
-            (lambda (match-text match-line)
-              (write-match match-text match-line)))
-           ((show-match-postion *settings*)
-            (lambda (match-text match-position)
-              (write-match match-text match-position)))
-           (t
-            (lambda (match-text)
-              (write-match match-text)))))))
+(defun make-match-handler ()
+  (unless (only-show-stream-names-without-matches *settings*)
+    (when (or (show-match-count *settings*)
+              (max-match-count *settings*))
+      (lambda () (count-match)))
+    (unless (show-match-count *settings*)
+      (cond ((only-show-stream-name *settings*)
+             (lambda () (write-match)))
+            ((and (show-match-line-number *settings*)
+                  (show-match-position *settings*))
+             (lambda (match-text match-line match-position)
+               (write-match match-text match-line match-position)))
+            ((show-match-line-number *settings*)
+             (lambda (match-text match-line)
+               (write-match match-text match-line)))
+            ((show-match-position *settings*)
+             (lambda (match-text match-position)
+               (write-match match-text match-position)))
+            (t
+             (lambda (match-text)
+               (write-match match-text)))))))
 
 (defun after-getopts ()
   (setf (match-test *settings*)
@@ -172,8 +172,8 @@
                                 :ignore-case (ignore-case *settings*)
                                 :line-match (line-match *settings*)))
         (output-format *messages*) (setup-output-format)
-        (match-writer *messages*) (setup-match-writer)
-        (match-handler *settings*) (setup-match-handler)))
+        (match-writer *messages*) (make-match-writer)
+        (match-handler *settings*) (make-match-handler)))
 
 
 
@@ -299,7 +299,7 @@
    (list '("-b" "--byte-offset")
          'boolean
          (lambda ()
-           "Show byte offset of match (actually file position)"
+           "Show byte offset of match (actually file position of line where match is)"
            (setf (show-match-position *settings*) t))))
   "Options and parameters.
 
@@ -387,6 +387,8 @@ An option definition list is a list with the following elements:
   nil
   "Program status")
 
+
+
 (defun grep-exit (&optional (status *status*))
   #+clisp (EXT:exit status))
 
@@ -401,7 +403,7 @@ An option definition list is a list with the following elements:
 ;; TODO streamline the control flow of printing.
 
 (defun write-match (&rest args)
-  (funcall (match-writer *messages*) args))
+  (apply (match-writer *messages*) args))
 
 (defun count-match ()
   (incf (match-count *messages*)))
@@ -411,8 +413,8 @@ An option definition list is a list with the following elements:
     (= (max-match-count *settings*)
        (match-count *messages*))))
 
-(defun handle-match (&args args)
-  (funcall (match-handler *settings*) (remove-if #'null args)))
+(defun handle-match (&rest args)
+  (apply (match-handler *settings*) (remove-if #'null args)))
 
 (defun seek-pattern (text &key line-number line-position)
   (loop
@@ -428,7 +430,7 @@ An option definition list is a list with the following elements:
                         (when (show-match-line-number *settings*) line-number)
                         (when (show-match-position *settings*)
                           (if (typep match-position 'integer)
-                              (+ line-position match-position)
+                              line-position
                               line-position))))
      finally (return count)))
 
@@ -440,16 +442,16 @@ An option definition list is a list with the following elements:
 (defun scan-stream (stream)
   (loop
      for line-number = 1 then (incf line-number)
+     for position = (file-position stream) then (file-position stream)
      for line = (read-line stream nil)
      then (read-line stream nil)
      with count = 0
-     with position = 0
      until (or (null line)
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
      do (when (seek-pattern line
                             :line-number line-number
-                            :line-position (file-position stream))
+                            :line-position position)
           (incf count))
      finally (cond ((show-match-count *settings*)
                     (write-count (match-count *messages*)))
