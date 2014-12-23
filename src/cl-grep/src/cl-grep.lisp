@@ -50,6 +50,7 @@
   (line-match nil)
   (match-test nil)
   (match-handler nil)
+  (stream-handler nil)
   (only-show-match nil)
   (patterns ()))
 
@@ -163,6 +164,16 @@
              (lambda (match-text)
                (write-match match-text)))))))
 
+(defun make-stream-handler ()
+  (cond ((show-match-count *settings*)
+         (lambda ()
+           (write-match (output-format *messages*) (match-count *messages*))))
+        ((only-show-stream-names-without-matches *settings*)
+         (lambda ()
+           (when (zerop count)
+             (write-match))))
+        (t (lambda () nil))))
+
 (defun after-getopts ()
   (setf (match-test *settings*)
         (funcall (if (invert-match *settings*)
@@ -173,7 +184,8 @@
                                 :line-match (line-match *settings*)))
         (output-format *messages*) (setup-output-format)
         (match-writer *messages*) (make-match-writer)
-        (match-handler *settings*) (make-match-handler)))
+        (match-handler *settings*) (make-match-handler)
+        (stream-handler *settings*) (make-stream-handler)))
 
 
 
@@ -299,7 +311,7 @@
    (list '("-b" "--byte-offset")
          'boolean
          (lambda ()
-           "Show byte offset of match (actually file position of line where match is)"
+           "Show byte offset of match (actually file position of match line)."
            (setf (show-match-position *settings*) t))))
   "Options and parameters.
 
@@ -453,11 +465,7 @@ An option definition list is a list with the following elements:
                             :line-number line-number
                             :line-position position)
           (incf count))
-     finally (cond ((show-match-count *settings*)
-                    (write-count (match-count *messages*)))
-                   ((only-show-stream-names-without-matches *settings*)
-                    (when (zerop count)
-                      (write-stream))))))
+     finally (funcall (stream-handler *settings*))))
 
 (defun handle-file-error (err)
   (when (ignore-file-errors *settings*)
