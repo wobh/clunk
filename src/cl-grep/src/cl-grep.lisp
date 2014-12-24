@@ -483,20 +483,13 @@ An option definition list is a list with the following elements:
       (with-open-file (stream file)
         (scan-stream stream)))))
 
-(defun handle-stream ()
+(defun handle-stdin ()
   (setf (input-stream-name *messages*) "(standard-input)"
         (output-stream *settings*) *standard-output*)
   (with-open-stream (stream *standard-input*)
     (scan-stream stream)))
 
-(defun main (&rest files)
-  (if files
-      (handle-files files)
-      (handle-stream))
-  (unless *status* (setf *status* 1))
-  (grep-exit))
-
-(defun handle-args (args)
+(defun handle-patterns (args)
   (let ((args (getopts args)))
     (unless (patterns *settings*)
       (pushnew (pop args) (patterns *settings*)))
@@ -504,4 +497,15 @@ An option definition list is a list with the following elements:
       (err-exit 2 (usage-str *messages*)))
     args))
 
-(apply #'main (handle-args *args*))
+(defun handle-args (args)
+  (let ((files (handle-patterns args)))
+    (if files
+        (handle-files files)
+        (handle-stdin))))
+
+(defun main (args)
+  (handle-args)
+  (unless *status* (setf *status* 1))
+  (grep-exit))
+
+(apply #'main *args*)
