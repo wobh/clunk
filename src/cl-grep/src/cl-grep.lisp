@@ -51,6 +51,7 @@
   (match-test nil)
   (match-handler nil)
   (stream-handler nil)
+  (scan-handler nil)
   (only-show-match nil)
   (patterns ()))
 
@@ -164,7 +165,7 @@
              (lambda (match-text)
                (write-match match-text)))))))
 
-(defun make-stream-handler ()
+(defun make-scan-handler ()
   (cond ((show-match-count *settings*)
          (lambda ()
            (write-match (output-format *messages*) (match-count *messages*))))
@@ -465,7 +466,7 @@ An option definition list is a list with the following elements:
                             :line-number line-number
                             :line-position position)
           (incf count))
-     finally (funcall (stream-handler *settings*))))
+        finally (funcall (scan-handler *settings*))))
 
 (defun handle-file-error (err)
   (when (ignore-file-errors *settings*)
