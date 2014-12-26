@@ -165,6 +165,29 @@
              (lambda (match-text)
                (write-match match-text)))))))
 
+(defun make-pattern-seeker ()
+  (let ((match-handler-args ()))
+    (push (if (only-show-match *settings*)
+              pattern
+              line-text)
+          match-handler-args)
+    (when (show-match-line-number *settings*)
+      (push 'line-number match-handler-args))
+    (when (show-match-position *settings*)
+      (push line-position match-handler-args))
+    ;; FIXME: This won't work; needs macro? Macro won't know about
+    ;; *settings*.
+    (lambda (line-text line-number line-position)
+      (loop
+        for pattern in (patterns *settings*)
+        with match-position = nil
+        while (null match-position)
+        do
+           (when (setf match-position
+                       (funcall (match-test *settings*) pattern line-text))
+             (unless *status* (setf *status* 0))
+             (apply (match-handler *settings*) match-handler-args))))))
+
 (defun make-scan-handler ()
   (cond ((show-match-count *settings*)
          (lambda ()
@@ -400,8 +423,6 @@ An option definition list is a list with the following elements:
   nil
   "Program status")
 
-
-
 (defun grep-exit (&optional (status *status*))
   #+clisp (EXT:exit status))
 
@@ -429,23 +450,34 @@ An option definition list is a list with the following elements:
 (defun handle-match (&rest args)
   (apply (match-handler *settings*) (remove-if #'null args)))
 
-(defun seek-pattern (text &key line-number line-position)
-  (loop
-     for pattern in (patterns *settings*)
-     with match-position = nil
-     with count = 0
-     while (null match-position)
-     do
-        (when (setf match-position (funcall (match-test *settings*) pattern text))
-          (unless *status* (setf *status* 0))
-          (incf count)
-          (handle-match (if (only-show-match *settings*) pattern text)
-                        (when (show-match-line-number *settings*) line-number)
-                        (when (show-match-position *settings*)
-                          (if (typep match-position 'integer)
-                              line-position
-                              line-position))))
-     finally (return count)))
+(defun make-pattern-seeker ()
+  (let ((match-handler-args ()))
+    (push (if (only-show-match *settings*)
+              pattern
+              line-text)
+          match-handler-args)
+    (when (show-match-line-number *settings*)
+      (push 'line-number match-handler-args))
+    (when (show-match-position *settings*)
+      (push line-position match-handler-args))
+    ;; FIXME: This won't work; needs macro? Macro won't know about
+    ;; *settings*.
+    (lambda (line-text line-number line-position)
+      (loop
+        for pattern in (patterns *settings*)
+        with match-position = nil
+        with count = 0
+        while (null match-position)
+        do
+           (when (setf match-position
+                       (funcall (match-test *settings*) pattern line-text))
+             (unless *status* (setf *status* 0))
+             (incf count)
+             (apply (match-handler *settings*) match-handler-args)
+             finally (return count))))))
+
+(defun seek-pattern (text line-number line-position)
+  )
 
 (defun max-stream-matches-counted-p (match-stream-count)
   (when (max-stream-match-count *settings*)
@@ -462,11 +494,10 @@ An option definition list is a list with the following elements:
      until (or (null line)
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
-     do (when (seek-pattern line
-                            :line-number line-number
-                            :line-position position)
+     do
+        (when (seek-pattern line line-number position)
           (incf count))
-        finally (funcall (scan-handler *settings*))))
+     finally (funcall (scan-handler *settings*))))
 
 (defun handle-file-error (err)
   (when (ignore-file-errors *settings*)
