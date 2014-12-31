@@ -165,7 +165,7 @@
              (lambda (match-text)
                (write-match match-text)))))))
 
-(defun make-pattern-seeker ()
+(defun make-match-handler-call ()
   (let ((match-handler-args ()))
     (push (if (only-show-match *settings*)
               pattern
@@ -175,18 +175,19 @@
       (push 'line-number match-handler-args))
     (when (show-match-position *settings*)
       (push line-position match-handler-args))
-    ;; FIXME: This won't work; needs macro? Macro won't know about
-    ;; *settings*.
-    (lambda (line-text line-number line-position)
-      (loop
-        for pattern in (patterns *settings*)
-        with match-position = nil
-        while (null match-position)
-        do
-           (when (setf match-position
-                       (funcall (match-test *settings*) pattern line-text))
-             (unless *status* (setf *status* 0))
-             (apply (match-handler *settings*) match-handler-args))))))
+    match-handler-args))
+
+(defun make-pattern-seeker ()
+  (lambda (line-text line-number line-position)
+    (loop
+       for pattern in (patterns *settings*)
+       with match-position = nil
+       while (null match-position)
+       do
+         (when (setf match-position
+                     (funcall (match-test *settings*) pattern line-text))
+           (unless *status* (setf *status* 0))
+           (apply (match-handler *settings*) match-handler-args)))))
 
 (defun make-scan-handler ()
   (cond ((show-match-count *settings*)
@@ -210,7 +211,6 @@
         (match-writer *messages*) (make-match-writer)
         (match-handler *settings*) (make-match-handler)
         (stream-handler *settings*) (make-stream-handler)))
-
 
 
 ;;; Options
@@ -495,8 +495,8 @@ An option definition list is a list with the following elements:
                (max-stream-matches-counted-p count)
                (max-matches-counted-p))
      do
-        (when (seek-pattern line line-number position)
-          (incf count))
+       (when (seek-pattern line line-number position)
+         (incf count))
      finally (funcall (scan-handler *settings*))))
 
 (defun handle-file-error (err)
