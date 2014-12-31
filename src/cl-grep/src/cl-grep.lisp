@@ -62,6 +62,20 @@
 
 ;;; Definitions
 
+(defun never (&rest args)
+  (declare (ignore args))
+  nil)
+
+(defun always (&rest args)
+  (declare (ignore args))
+  t)
+
+(defun curry (function &rest args)
+  (lambda (&rest more-args)
+    (apply function (append args more-args))))
+
+(defun compose ())
+
 (defmacro make-matcher (function &rest options)
   "Returns a function of two arguments to match first argument to second."
   (let ((pattern (gensym "PATTERN"))
@@ -87,61 +101,6 @@
          (make-matcher string-equal))
         ((and fixed-string ignore-case line-match)
          (identity (make-matcher string-equal)))))
-
-(defun setup-output-format ()
-  (with-output-to-string (str)
-    (princ "~&" str)
-    (when (show-current-stream-name *settings*)
-      (princ (input-stream-name *messages*) str)
-      (when (show-null-byte-after-stream-name *settings*)
-        (princ (stream-name-match-separator *messages*) str)))
-    (unless (only-show-stream-name *settings*)
-      (when (show-current-stream-name *settings*)
-        (unless (show-null-byte-after-stream-name *settings*)
-          (princ (stream-name-match-separator *messages*) str)))
-      (cond
-        ((show-match-count *settings*)
-         (princ "~D" str))
-        (t
-         (when (show-match-line-number *settings*)
-           (princ "~D:" str))
-         (when (show-match-position *settings*)
-           (princ "~D:" str))
-         (princ "~A" str))))
-    (princ "~%" str)))
-
-(defun make-match-writer ()
-  (cond
-    ((only-show-stream-name *settings*)
-     (lambda ()
-       (format (output-stream *settings*)
-               (output-format *messages*)
-               (input-stream-name *messages*))))
-    ((show-match-count *settings*)
-     (lambda (match-count)
-       (format (output-stream *settings*)
-               (output-format *messages*)
-               match-count)))
-    ((and (show-match-line-number *settings*)
-          (show-match-position *settings*))
-     (lambda (match-text line-number match-position)
-       (format (output-stream *settings*)
-               (output-format *messages*)
-               line-number
-               match-postion
-               match-text)))
-    ((or (show-match-line-number *settings*)
-         (show-match-position *settings*))
-     (lambda (match-text match-marker)
-       (format (output-stream *settings*)
-               (output-format *messages*)
-               match-marker
-               match-text)))
-    (t
-     (lambda (match-text)
-       (format (output-stream *settings*)
-               (output-format *messages*)
-               match-text)))))
 
 (defun make-match-handler ()
   (unless (only-show-stream-names-without-matches *settings*)
@@ -198,6 +157,74 @@
            (when (zerop count)
              (write-match))))
         (t (lambda () nil))))
+
+(defun make-stream-handler ()
+  (cond ((show-match-count *settings*)
+         (defun handle-stream (stream)
+           (loop
+              for line = (read-line stream nil)
+              do
+                (when (handle-search line)))))))
+
+
+
+(defun setup-output-format ()
+  (with-output-to-string (str)
+    (princ "~&" str)
+    (when (show-current-stream-name *settings*)
+      (princ (input-stream-name *messages*) str)
+      (when (show-null-byte-after-stream-name *settings*)
+        (princ (stream-name-match-separator *messages*) str)))
+    (unless (only-show-stream-name *settings*)
+      (when (show-current-stream-name *settings*)
+        (unless (show-null-byte-after-stream-name *settings*)
+          (princ (stream-name-match-separator *messages*) str)))
+      (cond
+        ((show-match-count *settings*)
+         (princ "~D" str))
+        (t
+         (when (show-match-line-number *settings*)
+           (princ "~D:" str))
+         (when (show-match-position *settings*)
+           (princ "~D:" str))
+         (princ "~A" str))))
+    (princ "~%" str)))
+
+(defun make-match-writer ()
+  (cond 
+    ((only-show-stream-name *settings*)
+     (lambda ()
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               (input-stream-name *messages*))))
+    ((show-match-count *settings*)
+     (lambda (match-count)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               match-count)))
+    ((and (show-match-line-number *settings*)
+          (show-match-position *settings*))
+     (lambda (match-text line-number match-position)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               line-number
+               match-postion
+               match-text)))
+    ((or (show-match-line-number *settings*)
+         (show-match-position *settings*))
+     (lambda (match-text match-marker)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               match-marker
+               match-text)))
+    (t
+     (lambda (match-text)
+       (format (output-stream *settings*)
+               (output-format *messages*)
+               match-text)))))
+
+
+
 
 (defun after-getopts ()
   (setf (match-test *settings*)
@@ -491,13 +518,22 @@ An option definition list is a list with the following elements:
      for line = (read-line stream nil)
      then (read-line stream nil)
      with count = 0
-     until (or (null line)
-               (max-stream-matches-counted-p count)
-               (max-matches-counted-p))
      do
        (when (seek-pattern line line-number position)
          (incf count))
      finally (funcall (scan-handler *settings*))))
+
+(defun handle-search (line)
+  (loop
+     for pattern in (patterns *settings*)
+     do (handle-)))
+
+(defun handle-stream (stream)
+  (loop
+     for line = (read-line stream nil)
+     do (get-stream-info stream)
+     until (stop-stream-p)
+     do (handle-search line)))
 
 (defun handle-file-error (err)
   (when (ignore-file-errors *settings*)
@@ -512,13 +548,13 @@ An option definition list is a list with the following elements:
     (handler-bind ((file-error #'handle-file-error))
       (setf (input-stream-name *messages*) file)
       (with-open-file (stream file)
-        (scan-stream stream)))))
+        (handle-stream stream)))))
 
 (defun handle-stdin ()
   (setf (input-stream-name *messages*) "(standard-input)"
         (output-stream *settings*) *standard-output*)
   (with-open-stream (stream *standard-input*)
-    (scan-stream stream)))
+    (handle-stream stream)))
 
 (defun handle-patterns (args)
   (let ((args (getopts args)))
